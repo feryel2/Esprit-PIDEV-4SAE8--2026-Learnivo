@@ -30,13 +30,18 @@ spring:
           auth: 'true'
           connectiontimeout: '5000'
     host: smtp.gmail.com
-
+    username: hamdi.ankoud@gmail.com
+    password:
     port: '587'
 app:
   instructor-email: INSTRUCTEUR@gmail.com
 meeting:
   provider: google
-
+google:
+  client-id:
+  client-secret:
+  refresh-token:
+  calendar-id: primary
 eureka:
   client:
     service-url:
