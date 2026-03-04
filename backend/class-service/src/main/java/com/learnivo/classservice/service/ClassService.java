@@ -19,6 +19,8 @@ import java.util.List;
 public class ClassService {
 
     private final ClassRepository classRepository;
+    private final MeetingService meetingService;
+    private final EmailService emailService;
 
     // ── Lecture ────────────────────────────────────────────────────────
 
@@ -69,21 +71,17 @@ public class ClassService {
         existing.setRecurring(updated.isRecurring());
         existing.setNotes(updated.getNotes());
 
-        // ★ Toujours clear() + addAll() — jamais remplacer la collection
         existing.getEnrolled().clear();
-        if (updated.getEnrolled() != null) {
+        if (updated.getEnrolled() != null)
             existing.getEnrolled().addAll(updated.getEnrolled());
-        }
 
         existing.getAttendance().clear();
-        if (updated.getAttendance() != null) {
+        if (updated.getAttendance() != null)
             existing.getAttendance().addAll(updated.getAttendance());
-        }
 
         existing.getMaterials().clear();
-        if (updated.getMaterials() != null) {
+        if (updated.getMaterials() != null)
             existing.getMaterials().addAll(updated.getMaterials());
-        }
 
         return classRepository.save(existing);
     }
@@ -92,7 +90,6 @@ public class ClassService {
 
     public void delete(Long id) {
         PlatformClass existing = findById(id);
-        // Vider les collections enfants avant suppression
         existing.getEnrolled().clear();
         existing.getAttendance().clear();
         existing.getMaterials().clear();
@@ -100,7 +97,7 @@ public class ClassService {
         classRepository.deleteById(id);
     }
 
-    // ── Inscription user public ────────────────────────────────────────
+    // ── Inscription élève ──────────────────────────────────────────────
 
     public EnrolledStudent enroll(Long classId, String name, String email) {
         PlatformClass cls = findById(classId);
@@ -117,6 +114,7 @@ public class ClassService {
                 && cls.getEnrolled().size() >= cls.getMaxCapacity())
             throw new IllegalStateException("Sorry, this class is full.");
 
+        // ★ Créer l'étudiant
         EnrolledStudent student = EnrolledStudent.builder()
                 .name(name)
                 .email(email)
@@ -131,32 +129,24 @@ public class ClassService {
             cls.setStatus(PlatformClass.Status.FULL);
         }
 
+        // ★ Générer le lien Meet (déterministe — même classe = même lien)
+        String meetLink = meetingService.generateMeetLink(cls);
+
+        // Stocker le lien dans la classe si pas encore fait
+        if (cls.getLink() == null || cls.getLink().isBlank()) {
+            cls.setLink(meetLink);
+        }
+
         classRepository.save(cls);
+
+        // ★ Envoyer les emails (async — ne bloque pas la réponse)
+        emailService.sendEnrollmentConfirmation(student, cls, cls.getLink());
+        emailService.sendInstructorNotification(student, cls, cls.getLink());
+
         return student;
     }
 
-    // ── Gestion des présences ──────────────────────────────────────────
-
-    public PlatformClass markAttendance(Long classId, String date, List<Long> attendeeIds) {
-        PlatformClass cls = findById(classId);
-
-        // Vérifier si une présence existe déjà pour cette date
-        boolean exists = cls.getAttendance().stream()
-                .anyMatch(r -> r.getDate().equals(date));
-
-        if (!exists) {
-            AttendanceRecord record = AttendanceRecord.builder()
-                    .date(date)
-                    .attendees(attendeeIds)
-                    .build();
-            cls.getAttendance().add(record);
-            classRepository.save(cls);
-        }
-
-        return cls;
-    }
-
-    // ── Gestion des matériaux ──────────────────────────────────────────
+    // ── Matériaux ──────────────────────────────────────────────────────
 
     public PlatformClass addMaterial(Long classId, ClassMaterial material) {
         PlatformClass cls = findById(classId);
@@ -168,5 +158,19 @@ public class ClassService {
         PlatformClass cls = findById(classId);
         cls.getMaterials().removeIf(m -> m.getId().equals(materialId));
         return classRepository.save(cls);
+    }
+
+    // ── Présences ──────────────────────────────────────────────────────
+
+    public PlatformClass markAttendance(Long classId, String date, List<Long> attendeeIds) {
+        PlatformClass cls = findById(classId);
+        boolean exists = cls.getAttendance().stream().anyMatch(r -> r.getDate().equals(date));
+        if (!exists) {
+            AttendanceRecord record = AttendanceRecord.builder()
+                    .date(date).attendees(attendeeIds).build();
+            cls.getAttendance().add(record);
+            classRepository.save(cls);
+        }
+        return cls;
     }
 }
