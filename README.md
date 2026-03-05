@@ -55,3 +55,10 @@ mvn spring-boot:run
 ### Frontend
 npm install
 ng serve
+
+###Microservices Mode (local, without Docker)
+Run each service with Maven:
+
+backend/course-service on port 8081
+backend/quiz-service on port 8082
+backend/service-registry on port 8761
