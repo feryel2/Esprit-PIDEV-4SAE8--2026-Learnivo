@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["angular:styles/component:css;1842b56b1322705dc1f027563d1a5f87022a692aa4c53d7753ec1272fa772de6;C:/Users/alaas/OneDrive/Bureau/frontend/learnivo-frontend/src/app/features/events/events.component.ts"],
+  "sourcesContent": ["\n    .page-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}\n    .page-title{font-size:1.6rem;font-weight:600;color:#311b92;margin:0;}\n    .search-field{width:100%;max-width:400px;}\n    .full-table{width:100%;}.spinner-center{display:flex;justify-content:center;padding:40px;}\n    .empty-state{text-align:center;padding:40px;color:#999;}\n    .pagination{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:12px;}\n  "],
+  "mappings": ";AACI,CAAC;AAAY,WAAQ;AAAK,mBAAgB;AAAc,eAAY;AAAO,iBAAc;AAAK;AAC9F,CAAC;AAAW,aAAU;AAAO,eAAY;AAAI,SAAM;AAAQ,UAAO;AAAE;AACpE,CAAC;AAAa,SAAM;AAAK,aAAU;AAAM;AACzC,CAAC;AAAW,SAAM;AAAK;AAAC,CAAC;AAAe,WAAQ;AAAK,mBAAgB;AAAO,WAAQ;AAAK;AACzF,CAAC;AAAY,cAAW;AAAO,WAAQ;AAAK,SAAM;AAAK;AACvD,CAAC;AAAW,WAAQ;AAAK,eAAY;AAAO,mBAAgB;AAAS,OAAI;AAAI,cAAW;AAAK;",
+  "names": []
+}

@@ -1,0 +1,95 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        # ----------- Learnivo Certification Service -----------
+        - id: learnivo-certificates
+          uri: lb://learnivo
+          predicates:
+            - Path=/api/certificates/**
+          filters:
+            - StripPrefix=0
+
+        - id: learnivo-internships
+          uri: lb://learnivo
+          predicates:
+            - Path=/api/internships/**
+          filters:
+            - StripPrefix=0
+
+        - id: learnivo-applications
+          uri: lb://learnivo
+          predicates:
+            - Path=/api/applications/**
+          filters:
+            - StripPrefix=0
+
+        - id: learnivo-events
+          uri: lb://learnivo
+          predicates:
+            - Path=/api/events/**
+          filters:
+            - StripPrefix=0
+
+        - id: learnivo-certification-rules
+          uri: lb://learnivo
+          predicates:
+            - Path=/api/certification-rules/**
+          filters:
+            - StripPrefix=0
+
+        - id: learnivo-verify
+          uri: lb://learnivo
+          predicates:
+            - Path=/api/verify/**
+          filters:
+            - StripPrefix=0
+
+        # Swagger UI passthrough
+        - id: learnivo-swagger
+          uri: lb://learnivo
+          predicates:
+            - Path=/swagger-ui/**,/v3/api-docs/**,/swagger-ui.html
+          filters:
+            - StripPrefix=0
+
+        # Global CORS
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:4200"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+
+server:
+  port: 8080
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG

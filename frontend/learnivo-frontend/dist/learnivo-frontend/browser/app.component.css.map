@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["angular:styles/component:css;958307d5348e2314dbe7d11717cba6b2a3e3ed8d4fe7e5c8a3d34d5702d8b051;C:/Users/alaas/OneDrive/Bureau/frontend/learnivo-frontend/src/app/app.component.ts"],
+  "sourcesContent": ["\n    .loading-bar {\n      position: fixed;\n      top: 0; left: 0; right: 0;\n      z-index: 9999;\n    }\n  "],
+  "mappings": ";AACI,CAAC;AACC,YAAU;AACV,OAAK;AAAG,QAAM;AAAG,SAAO;AACxB,WAAS;AACX;",
+  "names": []
+}

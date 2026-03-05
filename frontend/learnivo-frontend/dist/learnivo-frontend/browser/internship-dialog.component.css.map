@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["angular:styles/component:css;2933c0907faf7ef28b38523360e91e0726bb2570f70477ae32a6d99f162ba47e;C:/Users/alaas/OneDrive/Bureau/frontend/learnivo-frontend/src/app/features/internships/internship-dialog.component.ts"],
+  "sourcesContent": ["\n    .dialog-form { display:flex; flex-direction:column; gap:4px; min-width:420px; padding-top:12px; }\n    .row-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; }\n    mat-form-field { width:100%; }\n  "],
+  "mappings": ";AACI,CAAC;AAAc,WAAQ;AAAM,kBAAe;AAAQ,OAAI;AAAK,aAAU;AAAO,eAAY;AAAM;AAChG,CAAC;AAAQ,WAAQ;AAAM,yBAAsB,IAAI;AAAK,OAAI;AAAM;AAChE;AAAiB,SAAM;AAAM;",
+  "names": []
+}

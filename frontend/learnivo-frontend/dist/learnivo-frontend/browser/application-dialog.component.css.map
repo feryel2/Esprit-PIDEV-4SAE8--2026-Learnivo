@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": ["angular:styles/component:css;0b9bbf08fe4b4d7d6d4c8912679f502b5114c32951fa07556aee1b1b62b8519a;C:/Users/alaas/OneDrive/Bureau/frontend/learnivo-frontend/src/app/features/applications/application-dialog.component.ts"],
+  "sourcesContent": [".dialog-form{display:flex;flex-direction:column;gap:4px;min-width:420px;padding-top:12px;}mat-form-field{width:100%;}"],
+  "mappings": ";AAAA,CAAC;AAAY,WAAQ;AAAK,kBAAe;AAAO,OAAI;AAAI,aAAU;AAAM,eAAY;AAAK;AAAC;AAAe,SAAM;AAAK;",
+  "names": []
+}

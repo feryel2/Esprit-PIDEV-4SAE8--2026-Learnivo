@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "learnivo: Start Dev Server",
+			"type": "shell",
+			"command": "node_modules\\.bin\\ng serve --port 4300",
+			"isBackground": true,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

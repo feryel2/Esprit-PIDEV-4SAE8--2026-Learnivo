@@ -1,0 +1,65 @@
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+$learnivo-primary: mat.define-palette(mat.$deep-purple-palette);
+$learnivo-accent:  mat.define-palette(mat.$amber-palette, A200, A100, A400);
+$learnivo-warn:    mat.define-palette(mat.$red-palette);
+
+$learnivo-theme: mat.define-light-theme((
+  color: (
+    primary: $learnivo-primary,
+    accent:  $learnivo-accent,
+    warn:    $learnivo-warn,
+  ),
+  typography: mat.define-typography-config(),
+  density: 0,
+));
+
+@include mat.all-component-themes($learnivo-theme);
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  background: #f5f5f5;
+}
+
+.spacer { flex: 1 1 auto; }
+
+.page-container {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+/* Stat cards */
+.stat-card {
+  cursor: default;
+  transition: box-shadow .2s;
+  &:hover { box-shadow: 0 6px 20px rgba(0,0,0,.14); }
+}
+
+/* Table */
+.mat-mdc-table { width: 100%; }
+.mat-column-actions { width: 120px; text-align: right; }
+
+/* Chips */
+.chip-pending  { background: #fff3e0 !important; color: #e65100 !important; }
+.chip-approved { background: #e8f5e9 !important; color: #2e7d32 !important; }
+.chip-rejected { background: #ffebee !important; color: #c62828 !important; }
+.chip-issued   { background: #e3f2fd !important; color: #1565c0 !important; }
+.chip-revoked  { background: #fce4ec !important; color: #880e4f !important; }
