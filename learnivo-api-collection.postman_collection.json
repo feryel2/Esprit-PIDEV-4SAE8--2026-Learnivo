@@ -1,0 +1,710 @@
+{
+  "info": {
+    "_postman_id": "6c7b3f9a-8b2c-4d3e-8f9a-3b4c5d6e7f8g",
+    "name": "Learnivo API Collection",
+    "description": "Complete API collection for Learnivo - English Learning Platform",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "item": [
+    {
+      "name": "Students",
+      "item": [
+        {
+          "name": "Get All Students",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Student by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Student by Email",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/by-email?email=test@example.com",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "by-email"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "test@example.com"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Next Event for Student",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1/next-event",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1", "next-event"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Student",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"john.doe@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Student",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe Updated\",\n  \"email\": \"john.updated@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Student",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/students/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "students", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "Get All Events (Simple List)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Events (Paged)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events?page=0&size=10&title=English&sortBy=startTime&sortDir=asc",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "0"
+                },
+                {
+                  "key": "size",
+                  "value": "10"
+                },
+                {
+                  "key": "title",
+                  "value": "English"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "startTime"
+                },
+                {
+                  "key": "sortDir",
+                  "value": "asc"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Event by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Advanced English Grammar\",\n  \"description\": \"Learn advanced grammar structures and improve your writing skills\",\n  \"startTime\": \"2024-01-15T18:00:00\",\n  \"endTime\": \"2024-01-15T20:00:00\",\n  \"location\": \"Room 301, Language Center\",\n  \"status\": \"UPCOMING\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Event",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Advanced English Grammar - Updated\",\n  \"description\": \"Learn advanced grammar structures and improve your writing skills\",\n  \"startTime\": \"2024-01-16T18:00:00\",\n  \"endTime\": \"2024-01-16T20:00:00\",\n  \"location\": \"Room 301, Language Center\",\n  \"status\": \"UPCOMING\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/events/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Event",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Download Certificate",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/events/1/certificates/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "1", "certificates", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Event Registrations",
+      "item": [
+        {
+          "name": "Get All Registrations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/event-registrations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "event-registrations"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Registrations by Student",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/event-registrations?studentId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "event-registrations"],
+              "query": [
+                {
+                  "key": "studentId",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Registrations by Event",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/event-registrations?eventId=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "event-registrations"],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Registration by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/event-registrations/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "event-registrations", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registeredAt\": \"2024-01-10T10:30:00\",\n  \"status\": \"REGISTERED\",\n  \"eventId\": 1,\n  \"studentId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/event-registrations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "event-registrations"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Registration",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"registeredAt\": \"2024-01-10T10:30:00\",\n  \"status\": \"CANCELLED\",\n  \"eventId\": 1,\n  \"studentId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/event-registrations/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "event-registrations", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Registration",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/event-registrations/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "event-registrations", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Clubs",
+      "item": [
+        {
+          "name": "Get All Clubs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/clubs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clubs"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Club by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/clubs/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clubs", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Club",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"English Conversation Club\",\n  \"description\": \"Practice English conversation skills with native speakers\",\n  \"status\": \"ACTIVE\",\n  \"professorId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/clubs",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clubs"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Club",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"English Conversation Club - Updated\",\n  \"description\": \"Practice English conversation skills with native speakers\",\n  \"status\": \"ACTIVE\",\n  \"professorId\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/clubs/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clubs", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Club",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/clubs/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "clubs", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Club Memberships",
+      "item": [
+        {
+          "name": "Get All Memberships",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/club-memberships",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "club-memberships"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Membership by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/club-memberships/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "club-memberships", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Membership",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clubId\": 1,\n  \"studentId\": 1,\n  \"joinDate\": \"2024-01-10T10:30:00\",\n  \"status\": \"ACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/club-memberships",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "club-memberships"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Membership",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clubId\": 1,\n  \"studentId\": 1,\n  \"joinDate\": \"2024-01-10T10:30:00\",\n  \"status\": \"INACTIVE\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/club-memberships/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "club-memberships", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Membership",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/club-memberships/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "club-memberships", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Professors",
+      "item": [
+        {
+          "name": "Get All Professors",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/professors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "professors"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Professor by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/professors/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "professors", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Professor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Sarah Johnson\",\n  \"email\": \"sarah.johnson@learnivo.com\",\n  \"specialization\": \"English Linguistics\",\n  \"bio\": \"PhD in Linguistics with 10 years of teaching experience\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/professors",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "professors"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Professor",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "name": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Dr. Sarah Johnson\",\n  \"email\": \"sarah.johnson@learnivo.com\",\n  \"specialization\": \"English Linguistics and Literature\",\n  \"bio\": \"PhD in Linguistics with 10 years of teaching experience\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/professors/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "professors", "1"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Professor",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/professors/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "professors", "1"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8085"
+    }
+  ],
+  "auth": {
+    "type": "noauth"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}

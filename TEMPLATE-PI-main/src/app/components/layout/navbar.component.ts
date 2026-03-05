@@ -1,0 +1,41 @@
+import { Component } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterModule, Router } from '@angular/router';
+import { LucideAngularModule, Menu, X, User, Phone, Globe } from 'lucide-angular';
+import { NextEventCountdownComponent } from '../ui/next-event-countdown.component';
+
+@Component({
+  selector: 'app-navbar',
+  standalone: true,
+  imports: [CommonModule, RouterModule, LucideAngularModule, NextEventCountdownComponent],
+  templateUrl: './navbar.component.html',
+})
+export class NavbarComponent {
+  mobileOpen = false;
+
+  readonly MenuIcon = Menu;
+  readonly XIcon = X;
+  readonly UserIcon = User;
+  readonly PhoneIcon = Phone;
+  readonly GlobeIcon = Globe;
+
+  navLinks = [
+    { href: '/', label: 'About' },
+    { href: '/trainings', label: 'Training' },
+    { href: '/clubs', label: 'Clubs' },
+    { href: '/events', label: 'Events' },
+    { href: '/competitions', label: 'Competitions' },
+    { href: '/classes', label: 'Classes' },
+    { href: '/admin', label: 'Admin' },
+  ];
+
+  constructor(public router: Router) { }
+
+  toggleMobile() {
+    this.mobileOpen = !this.mobileOpen;
+  }
+
+  isCurrentRoute(href: string): boolean {
+    return this.router.url === href;
+  }
+}
