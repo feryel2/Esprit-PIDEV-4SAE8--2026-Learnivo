@@ -1,0 +1,63 @@
+@if (training()) {
+<div class="mx-auto max-w-7xl px-4 py-10 lg:px-8">
+    <div class="overflow-hidden rounded-[2rem] border border-border bg-white shadow-sm">
+        <div class="aspect-[16/7] w-full overflow-hidden bg-muted/30">
+            <img [src]="training()!.banner || training()!.image" [alt]="training()!.title"
+                class="h-full w-full object-cover" />
+        </div>
+
+        <div class="space-y-8 p-6 md:p-8">
+            <div class="space-y-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-teal-700">
+                        {{ training()!.type }}
+                    </span>
+                    <span class="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-orange-700">
+                        {{ training()!.level }}
+                    </span>
+                    @if (training()!.category) {
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                        {{ training()!.category }}
+                    </span>
+                    }
+                </div>
+
+                <h1 class="text-2xl font-bold text-foreground md:text-4xl">
+                    {{ training()!.title }}
+                </h1>
+
+                <p class="max-w-4xl text-sm leading-7 text-muted-foreground md:text-base">
+                    {{ training()!.description }}
+                </p>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-4">
+                <div class="rounded-2xl bg-muted/30 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Instructor</p>
+                    <p class="mt-2 text-sm font-semibold text-foreground">{{ training()!.instructor || 'Not assigned' }}</p>
+                </div>
+                <div class="rounded-2xl bg-muted/30 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Duration</p>
+                    <p class="mt-2 text-sm font-semibold text-foreground">{{ training()!.duration || 'Not set' }}</p>
+                </div>
+                <div class="rounded-2xl bg-muted/30 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Chapters</p>
+                    <p class="mt-2 text-sm font-semibold text-foreground">{{ training()!.chapters || 0 }}</p>
+                </div>
+                <div class="rounded-2xl bg-muted/30 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Action</p>
+                    <p class="mt-2 text-sm font-semibold text-foreground">Enroll now</p>
+                </div>
+            </div>
+
+            <div>
+                <a [routerLink]="continueLearningLink()"
+                    class="inline-flex items-center gap-2 rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-700">
+                    Continue learning
+                    <lucide-angular [img]="ArrowRightIcon" class="h-4 w-4"></lucide-angular>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+}
