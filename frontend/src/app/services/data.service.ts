@@ -208,6 +208,10 @@ interface QuizApiResponse {
     items: QuizQuestion[];
 }
 
+interface CourseAssetUploadResponse {
+    url: string;
+}
+
 @Injectable({
     providedIn: 'root'
 })
@@ -491,6 +495,28 @@ export class DataService {
         const normalized = this.fromCourseApi(updated);
         this.trainings.update((list) => list.map((item) => item.id === id ? normalized : item));
         return normalized;
+    }
+
+    async uploadCourseCover(file: File) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await firstValueFrom(
+            this.http.post<CourseAssetUploadResponse>(`${this.courseApiUrl}/assets/cover`, formData)
+        );
+
+        return this.toAbsoluteCourseAssetUrl(response.url);
+    }
+
+    async uploadCourseChapterPdf(file: File) {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await firstValueFrom(
+            this.http.post<CourseAssetUploadResponse>(`${this.courseApiUrl}/assets/chapter-pdf`, formData)
+        );
+
+        return this.toAbsoluteCourseAssetUrl(response.url);
     }
 
     addCompetition(comp: Competition) {
@@ -916,6 +942,15 @@ export class DataService {
             default:
                 return 'DRAFT';
         }
+    }
+
+    private toAbsoluteCourseAssetUrl(url: string) {
+        if (/^https?:\/\//i.test(url)) {
+            return url;
+        }
+
+        const origin = new URL(this.courseApiUrl).origin;
+        return url.startsWith('/') ? `${origin}${url}` : `${origin}/${url}`;
     }
 
     private upsertTraining(training: Training) {

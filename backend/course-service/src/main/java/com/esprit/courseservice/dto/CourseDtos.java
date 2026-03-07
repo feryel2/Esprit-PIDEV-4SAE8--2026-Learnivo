@@ -33,7 +33,7 @@ public final class CourseDtos {
     public record CourseChapterRequest(
             @NotBlank @Size(max = 140) String name,
             @NotNull @Min(1) Integer number,
-            @NotBlank @Size(max = 12000) String pdfUrl,
+            @NotBlank String pdfUrl,
             @Valid List<CourseSectionRequest> sections
     ) {
     }
@@ -53,8 +53,8 @@ public final class CourseDtos {
             @NotNull CourseType type,
             @NotNull CourseStatus status,
             @NotBlank @Size(max = 32) String level,
-            @NotBlank @Size(max = 4000) String image,
-            @Size(max = 4000) String banner,
+            @NotBlank String image,
+            String banner,
             @NotBlank @Size(min = 3, max = 80) String instructor,
             @NotBlank @Size(max = 80) String category,
             @NotNull @Min(1) @Max(60) Integer chapters,

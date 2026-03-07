@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule, NgForm } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule, ArrowLeft, Image as ImageIcon, Upload } from 'lucide-angular';
@@ -210,6 +211,10 @@ import { DataService, Training, TrainingChapter, TrainingStatus, TrainingType } 
               <p class="mt-2 text-sm text-muted-foreground">Upload one PDF for each chapter. This file will be shown when the learner clicks continue learning.</p>
             </div>
 
+            @if (uploadingChapterLabel()) {
+              <p class="text-sm text-teal-700">Uploading {{ uploadingChapterLabel() }}...</p>
+            }
+
             @for (chapter of chapterDrafts(); track chapter.number) {
             <div class="rounded-2xl border border-border bg-white p-4">
               <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -248,6 +253,9 @@ import { DataService, Training, TrainingChapter, TrainingStatus, TrainingType } 
               Upload cover image
               <input type="file" accept="image/*" class="hidden" (change)="onImageSelected($event)" />
             </label>
+            @if (uploadingCover()) {
+              <p class="mt-3 text-sm text-teal-700">Uploading cover image...</p>
+            }
             @if (coverError()) {
               <p class="mt-3 text-sm text-rose-600">{{ coverError() }}</p>
             } @else if (courseForm.submitted && !draft.image) {
@@ -298,6 +306,8 @@ export class AdminCourseCreateComponent {
 
   formError = signal('');
   coverError = signal('');
+  uploadingCover = signal(false);
+  uploadingChapterLabel = signal('');
   draft = this.createEmptyDraft();
   chapterDrafts = signal<TrainingChapter[]>(this.createChapterDrafts(1));
   typeOptions: TrainingType[] = ['Blended course', 'Live classes'];
@@ -321,7 +331,7 @@ export class AdminCourseCreateComponent {
   readonly ImageIcon = ImageIcon;
   readonly UploadIcon = Upload;
 
-  onImageSelected(event: Event) {
+  async onImageSelected(event: Event) {
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.[0];
     if (!file) return;
@@ -332,15 +342,20 @@ export class AdminCourseCreateComponent {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
+    this.uploadingCover.set(true);
+    try {
+      const imageUrl = await this.data.uploadCourseCover(file);
       this.coverError.set('');
-      this.draft.image = typeof reader.result === 'string' ? reader.result : '';
-    };
-    reader.readAsDataURL(file);
+      this.draft.image = imageUrl;
+    } catch (error) {
+      this.coverError.set(this.getApiErrorMessage(error, 'The course cover could not be uploaded.'));
+      input.value = '';
+    } finally {
+      this.uploadingCover.set(false);
+    }
   }
 
-  onChapterPdfSelected(index: number, event: Event) {
+  async onChapterPdfSelected(index: number, event: Event) {
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.[0];
     if (!file) return;
@@ -351,18 +366,24 @@ export class AdminCourseCreateComponent {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
+    const chapterNumber = index + 1;
+    this.uploadingChapterLabel.set(`chapter ${chapterNumber} PDF`);
+    try {
+      const pdfUrl = await this.data.uploadCourseChapterPdf(file);
       this.formError.set('');
       this.chapterDrafts.update((chapters) =>
         chapters.map((chapter, chapterIndex) =>
           chapterIndex === index
-            ? { ...chapter, pdfUrl: typeof reader.result === 'string' ? reader.result : '' }
+            ? { ...chapter, pdfUrl }
             : chapter
         )
       );
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      this.formError.set(this.getApiErrorMessage(error, 'The chapter PDF could not be uploaded.'));
+      input.value = '';
+    } finally {
+      this.uploadingChapterLabel.set('');
+    }
   }
 
   syncChapterDrafts(value: number) {
@@ -396,6 +417,11 @@ export class AdminCourseCreateComponent {
 
     if (!title || !description || !slug || !this.draft.category.trim()) {
       this.formError.set('Title, description, and category are required.');
+      return;
+    }
+
+    if (this.uploadingCover() || this.uploadingChapterLabel()) {
+      this.formError.set('Please wait for uploads to finish before creating the course.');
       return;
     }
 
@@ -435,8 +461,8 @@ export class AdminCourseCreateComponent {
         href: '/admin/courses'
       });
       await this.router.navigateByUrl('/admin/courses');
-    } catch {
-      this.formError.set('The course could not be created. Check that the backend services are running.');
+    } catch (error) {
+      this.formError.set(this.getCreateCourseErrorMessage(error));
     }
   }
 
@@ -470,5 +496,32 @@ export class AdminCourseCreateComponent {
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  }
+
+  private getCreateCourseErrorMessage(error: unknown) {
+    return this.getApiErrorMessage(error, 'The course could not be created. Check that the backend services are running.');
+  }
+
+  private getApiErrorMessage(error: unknown, fallback: string) {
+    if (error instanceof HttpErrorResponse) {
+      const payload = error.error;
+      const directMessage = typeof payload?.message === 'string'
+        ? payload.message.trim()
+        : typeof payload?.error === 'string'
+          ? payload.error.trim()
+          : '';
+      if (directMessage) {
+        return directMessage;
+      }
+
+      if (payload?.details && typeof payload.details === 'object') {
+        const firstDetail = Object.values(payload.details).find((value) => typeof value === 'string');
+        if (typeof firstDetail === 'string' && firstDetail.trim()) {
+          return firstDetail.trim();
+        }
+      }
+    }
+
+    return fallback;
   }
 }

@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
@@ -49,10 +50,12 @@ public class Course {
     @Column(nullable = false, length = 32)
     private String level;
 
-    @Column(nullable = false, length = 4000)
+    @Lob
+    @Column(nullable = false)
     private String image;
 
-    @Column(nullable = false, length = 4000)
+    @Lob
+    @Column(nullable = false)
     private String banner;
 
     @Column(nullable = false, unique = true, length = 150)

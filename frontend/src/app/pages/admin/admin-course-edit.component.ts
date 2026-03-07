@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule, NgForm } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule, ArrowLeft, Image as ImageIcon, Upload } from 'lucide-angular';
@@ -215,6 +216,10 @@ import { DataService, Training, TrainingChapter, TrainingStatus, TrainingType } 
                 <p class="mt-2 text-sm text-muted-foreground">Upload one PDF for each chapter.</p>
               </div>
 
+              @if (uploadingChapterLabel()) {
+                <p class="text-sm text-teal-700">Uploading {{ uploadingChapterLabel() }}...</p>
+              }
+
               @for (chapter of chapterDrafts(); track chapter.number) {
               <div class="rounded-2xl border border-border bg-white p-4">
                 <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -253,6 +258,9 @@ import { DataService, Training, TrainingChapter, TrainingStatus, TrainingType } 
                 Replace cover image
                 <input type="file" accept="image/*" class="hidden" (change)="onImageSelected($event)" />
               </label>
+              @if (uploadingCover()) {
+                <p class="mt-3 text-sm text-teal-700">Uploading cover image...</p>
+              }
               @if (coverError()) {
                 <p class="mt-3 text-sm text-rose-600">{{ coverError() }}</p>
               } @else if (courseForm.submitted && !draft.image) {
@@ -299,6 +307,8 @@ export class AdminCourseEditComponent {
   formError = signal('');
   coverError = signal('');
   loadError = signal('');
+  uploadingCover = signal(false);
+  uploadingChapterLabel = signal('');
   courseId: number | string | null = null;
   draft = this.createEmptyDraft();
   chapterDrafts = signal<TrainingChapter[]>(this.createChapterDrafts(1));
@@ -333,7 +343,7 @@ export class AdminCourseEditComponent {
     void this.loadCourse(id);
   }
 
-  onImageSelected(event: Event) {
+  async onImageSelected(event: Event) {
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.[0];
     if (!file) return;
@@ -344,15 +354,20 @@ export class AdminCourseEditComponent {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
+    this.uploadingCover.set(true);
+    try {
+      const imageUrl = await this.data.uploadCourseCover(file);
       this.coverError.set('');
-      this.draft.image = typeof reader.result === 'string' ? reader.result : '';
-    };
-    reader.readAsDataURL(file);
+      this.draft.image = imageUrl;
+    } catch (error) {
+      this.coverError.set(this.getApiErrorMessage(error, 'The course cover could not be uploaded.'));
+      input.value = '';
+    } finally {
+      this.uploadingCover.set(false);
+    }
   }
 
-  onChapterPdfSelected(index: number, event: Event) {
+  async onChapterPdfSelected(index: number, event: Event) {
     const input = event.target as HTMLInputElement | null;
     const file = input?.files?.[0];
     if (!file) return;
@@ -363,18 +378,24 @@ export class AdminCourseEditComponent {
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
+    const chapterNumber = index + 1;
+    this.uploadingChapterLabel.set(`chapter ${chapterNumber} PDF`);
+    try {
+      const pdfUrl = await this.data.uploadCourseChapterPdf(file);
       this.formError.set('');
       this.chapterDrafts.update((chapters) =>
         chapters.map((chapter, chapterIndex) =>
           chapterIndex === index
-            ? { ...chapter, pdfUrl: typeof reader.result === 'string' ? reader.result : '' }
+            ? { ...chapter, pdfUrl }
             : chapter
         )
       );
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      this.formError.set(this.getApiErrorMessage(error, 'The chapter PDF could not be uploaded.'));
+      input.value = '';
+    } finally {
+      this.uploadingChapterLabel.set('');
+    }
   }
 
   syncChapterDrafts(value: number) {
@@ -416,6 +437,11 @@ export class AdminCourseEditComponent {
     const description = this.draft.description.trim();
     const image = this.draft.image.trim();
 
+    if (this.uploadingCover() || this.uploadingChapterLabel()) {
+      this.formError.set('Please wait for uploads to finish before saving the course.');
+      return;
+    }
+
     if (!image || this.coverError()) {
       this.formError.set('Please upload a course cover image.');
       return;
@@ -452,8 +478,8 @@ export class AdminCourseEditComponent {
         href: '/admin/courses'
       });
       await this.router.navigateByUrl('/admin/courses');
-    } catch {
-      this.formError.set('The course could not be updated. Check that the backend services are running.');
+    } catch (error) {
+      this.formError.set(this.getApiErrorMessage(error, 'The course could not be updated. Check that the backend services are running.'));
     }
   }
 
@@ -516,5 +542,28 @@ export class AdminCourseEditComponent {
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '');
+  }
+
+  private getApiErrorMessage(error: unknown, fallback: string) {
+    if (error instanceof HttpErrorResponse) {
+      const payload = error.error;
+      const directMessage = typeof payload?.message === 'string'
+        ? payload.message.trim()
+        : typeof payload?.error === 'string'
+          ? payload.error.trim()
+          : '';
+      if (directMessage) {
+        return directMessage;
+      }
+
+      if (payload?.details && typeof payload.details === 'object') {
+        const firstDetail = Object.values(payload.details).find((value) => typeof value === 'string');
+        if (typeof firstDetail === 'string' && firstDetail.trim()) {
+          return firstDetail.trim();
+        }
+      }
+    }
+
+    return fallback;
   }
 }

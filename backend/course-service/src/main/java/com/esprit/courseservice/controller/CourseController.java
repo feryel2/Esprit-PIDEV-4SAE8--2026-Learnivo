@@ -2,13 +2,16 @@ package com.esprit.courseservice.controller;
 
 import com.esprit.courseservice.domain.CourseStatus;
 import com.esprit.courseservice.domain.CourseType;
+import com.esprit.courseservice.dto.CourseAssetUploadResponse;
 import com.esprit.courseservice.dto.CourseDtos.CourseAnalyticsResponse;
 import com.esprit.courseservice.dto.CourseDtos.CourseRequest;
 import com.esprit.courseservice.dto.CourseDtos.CourseResponse;
+import com.esprit.courseservice.service.CourseAssetStorageService;
 import com.esprit.courseservice.service.CourseService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -18,17 +21,21 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/courses")
 public class CourseController {
 
     private final CourseService courseService;
+    private final CourseAssetStorageService courseAssetStorageService;
 
-    public CourseController(CourseService courseService) {
+    public CourseController(CourseService courseService, CourseAssetStorageService courseAssetStorageService) {
         this.courseService = courseService;
+        this.courseAssetStorageService = courseAssetStorageService;
     }
 
     @GetMapping
@@ -56,6 +63,18 @@ public class CourseController {
     @ResponseStatus(HttpStatus.CREATED)
     public CourseResponse create(@Valid @RequestBody CourseRequest request) {
         return courseService.create(request);
+    }
+
+    @PostMapping(path = "/assets/cover", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public CourseAssetUploadResponse uploadCover(@RequestParam("file") MultipartFile file) {
+        return new CourseAssetUploadResponse(courseAssetStorageService.storeCoverImage(file));
+    }
+
+    @PostMapping(path = "/assets/chapter-pdf", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @ResponseStatus(HttpStatus.CREATED)
+    public CourseAssetUploadResponse uploadChapterPdf(@RequestParam("file") MultipartFile file) {
+        return new CourseAssetUploadResponse(courseAssetStorageService.storeChapterPdf(file));
     }
 
     @PutMapping("/{id}")
