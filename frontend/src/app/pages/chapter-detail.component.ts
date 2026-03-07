@@ -30,6 +30,7 @@ export class ChapterDetailComponent {
   quizSubmitted = signal(false);
   quizAttempts = signal(0);
   revealAnswers = signal(false);
+  loadError = signal('');
 
   readonly ArrowLeftIcon = ArrowLeft;
   readonly FileTextIcon = FileText;
@@ -59,11 +60,18 @@ export class ChapterDetailComponent {
   }
 
   private async loadStep(slug: string, chapterId: string) {
+    this.loadError.set('');
+
     try {
       const training = await this.data.getTrainingBySlug(slug);
       this.training.set(training);
 
-      const linkedQuiz = await this.data.getQuizByCourseTitle(training.title);
+      let linkedQuiz: Quiz | null = null;
+      try {
+        linkedQuiz = await this.data.getQuizByCourseTitle(training.title);
+      } catch {
+        linkedQuiz = null;
+      }
       this.quiz.set(linkedQuiz);
 
       if (chapterId === 'quiz') {
@@ -81,7 +89,9 @@ export class ChapterDetailComponent {
       }
 
       const chapterNumber = Number(chapterId);
-      const chapter = training.chaptersData?.find((item) => item.number === chapterNumber) ?? null;
+      const chapter = training.chaptersData?.find((item) => item.number === chapterNumber)
+        ?? training.chaptersData?.[0]
+        ?? null;
       this.currentChapter.set(chapter);
       this.isQuizStep.set(false);
       this.questions.set([]);
@@ -98,6 +108,7 @@ export class ChapterDetailComponent {
       this.questions.set([]);
       this.selectedAnswers.set([]);
       this.isQuizStep.set(false);
+      this.loadError.set('We could not load this course step right now.');
     }
   }
 
