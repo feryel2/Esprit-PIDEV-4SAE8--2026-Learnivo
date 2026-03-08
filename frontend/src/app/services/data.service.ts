@@ -217,8 +217,9 @@ interface CourseAssetUploadResponse {
 })
 export class DataService {
     private readonly http = inject(HttpClient);
-    private readonly courseApiUrl = 'http://localhost:8081/api/courses';
-    private readonly quizApiUrl = 'http://localhost:8082/api/quizzes';
+    private readonly gatewayBaseUrl = 'http://localhost:8080';
+    private readonly courseApiUrl = `${this.gatewayBaseUrl}/api/courses`;
+    private readonly quizApiUrl = `${this.gatewayBaseUrl}/api/quizzes`;
     notifications = signal<AdminNotification[]>([
         {
             id: 1,
@@ -949,8 +950,7 @@ export class DataService {
             return url;
         }
 
-        const origin = new URL(this.courseApiUrl).origin;
-        return url.startsWith('/') ? `${origin}${url}` : `${origin}/${url}`;
+        return url.startsWith('/') ? `${this.gatewayBaseUrl}${url}` : `${this.gatewayBaseUrl}/${url}`;
     }
 
     private upsertTraining(training: Training) {

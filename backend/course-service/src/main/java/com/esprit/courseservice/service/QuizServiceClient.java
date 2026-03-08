@@ -15,8 +15,8 @@ public class QuizServiceClient {
 
     private final WebClient webClient;
 
-    public QuizServiceClient(@Value("${quiz.service.base-url}") String quizServiceBaseUrl) {
-        this.webClient = WebClient.builder()
+    public QuizServiceClient(WebClient.Builder webClientBuilder, @Value("${quiz.service.base-url}") String quizServiceBaseUrl) {
+        this.webClient = webClientBuilder
                 .baseUrl(quizServiceBaseUrl)
                 .build();
     }

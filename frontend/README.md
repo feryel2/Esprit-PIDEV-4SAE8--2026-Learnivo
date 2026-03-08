@@ -12,6 +12,18 @@ ng serve
 
 Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
 
+For backend integration, start the backend modules first:
+
+```bash
+cd ../backend
+./mvnw.cmd -pl discovery-server spring-boot:run
+./mvnw.cmd -pl course-service spring-boot:run
+./mvnw.cmd -pl quiz-service spring-boot:run
+./mvnw.cmd -pl api-gateway spring-boot:run
+```
+
+The frontend is configured to call the backend through the gateway at `http://localhost:8080`.
+
 ## Code scaffolding
 
 Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
