@@ -33,15 +33,7 @@ spring:
     username: hazem.ankoud10@gmail.com
     password: rgfr titf wzud ruzg
     port: '587'
-app:
-  instructor-email: INSTRUCTEUR@gmail.com
-meeting:
-  provider: google
-google:
-  client-id: 765213802333-5egmi6h85e7usclmq23dumhun2btmj79.apps.googleusercontent.com
-  client-secret: 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
-  refresh-token: 1//04bhVHzMHJX7zCgYIARAAGAQSNwF-L9IrJyiLmBPk9-JIHVZbR9e_83amE9a-bn3T8qPCNR30GEEVpo4BX33kPhpn5CFWEbz6yPc
-  calendar-id: primary
+
 eureka:
   client:
     service-url:
