@@ -54,10 +54,5 @@ public class PlatformClass {
         return Boolean.TRUE.equals(recurring);
     }
 
-    public enum Status { ACTIVE, FULL, CANCELLED;
-        @com.fasterxml.jackson.annotation.JsonCreator
-        public static Status from(String value) {
-            return Status.valueOf(value.toUpperCase());
-        }
-    }
+    public enum Status { ACTIVE, FULL, CANCELLED; }
 }

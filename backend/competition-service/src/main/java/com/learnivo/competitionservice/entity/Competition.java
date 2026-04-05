@@ -55,9 +55,5 @@ public class Competition {
     @Builder.Default
     private List<CompetitionRound> rounds = new ArrayList<>();
 
-    public enum Status { UPCOMING, ONGOING, COMPLETED;
-        @com.fasterxml.jackson.annotation.JsonCreator
-        public static Participant.Status from(String value) {
-            return Participant.Status.valueOf(value.toUpperCase());
-        }}
+    public enum Status { UPCOMING, ONGOING, COMPLETED; }
 }

@@ -62,8 +62,8 @@ type JoinStep = 'form' | 'confirm' | 'success';
             <div class="group flex flex-col bg-white rounded-3xl border border-border overflow-hidden hover:shadow-2xl hover:shadow-teal-600/10 transition-all duration-500 hover:-translate-y-1">
 
               <!-- Header color band -->
-              <div [ngClass]="cls.type === 'Workshop' ? 'from-purple-600 to-purple-700' : cls.type === 'Bootcamp' ? 'from-orange-500 to-orange-600' : 'from-teal-600 to-teal-700'"
-                   class="bg-gradient-to-r p-6 text-white">
+              <div [style.background]="cls.type === 'Workshop' ? 'linear-gradient(135deg, #9333ea, #7e22ce)' : cls.type === 'Bootcamp' ? 'linear-gradient(135deg, #f97316, #ea580c)' : 'linear-gradient(135deg, #0d9488, #0f766e)'"
+                   class=" p-6 text-white">
                 <div class="flex items-center justify-between mb-3">
                   <span class="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2 py-1 rounded-full">{{ cls.type }}</span>
                   <span [ngClass]="{

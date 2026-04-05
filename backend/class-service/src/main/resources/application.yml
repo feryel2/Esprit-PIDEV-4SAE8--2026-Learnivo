@@ -1,5 +1,5 @@
 server:
-  port: 8081
+  port: 9090
 
 spring:
   application:
@@ -8,7 +8,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/class_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
     username: root
-    password:
+    password: azerty123
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -30,17 +30,17 @@ spring:
           auth: 'true'
           connectiontimeout: '5000'
     host: smtp.gmail.com
-    username: hamdi.ankoud@gmail.com
-    password:
+    username: hazem.ankoud10@gmail.com
+    password: rgfr titf wzud ruzg
     port: '587'
 app:
   instructor-email: INSTRUCTEUR@gmail.com
 meeting:
   provider: google
 google:
-  client-id:
-  client-secret:
-  refresh-token:
+  client-id: 765213802333-5egmi6h85e7usclmq23dumhun2btmj79.apps.googleusercontent.com
+  client-secret: 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
+  refresh-token: 1//04bhVHzMHJX7zCgYIARAAGAQSNwF-L9IrJyiLmBPk9-JIHVZbR9e_83amE9a-bn3T8qPCNR30GEEVpo4BX33kPhpn5CFWEbz6yPc
   calendar-id: primary
 eureka:
   client:

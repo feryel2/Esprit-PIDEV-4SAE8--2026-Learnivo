@@ -25,10 +25,5 @@ public class Participant {
 
     public enum Status {
         REGISTERED, WINNER, DISQUALIFIED;
-
-        @com.fasterxml.jackson.annotation.JsonCreator
-        public static Status from(String value) {
-            return Status.valueOf(value.toUpperCase());
-        }
     }
 }
