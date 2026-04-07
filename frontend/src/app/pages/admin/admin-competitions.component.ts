@@ -1,7 +1,7 @@
 import { Component, inject, signal, computed, OnInit, OnDestroy } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, SlicePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DataService, Competition, Participant, CompetitionRound } from '../../services/data.service';
+import { DataService, Competition, Participant, CompetitionRound, Announcement } from '../../services/data.service';
 import {
   LucideAngularModule, Trophy, Plus, Search, Pencil, Trash2, X,
   CheckCircle2, Clock, AlertTriangle, Users, Tag, Medal, Star, Flag
@@ -9,7 +9,7 @@ import {
 
 const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
   title: '', description: '', image: '/images/event-1.jpg', slug: '',
-  status: 'upcoming', deadline: '', prize: '', category: '',
+  status: 'upcoming', startDate: '', deadline: '', prize: '', category: '',
   tags: [], maxParticipants: 50, participants: [], rounds: [],
   rules: '', resultsPublished: false
 });
@@ -17,7 +17,7 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
 @Component({
   selector: 'app-admin-competitions',
   standalone: true,
-  imports: [CommonModule, FormsModule, LucideAngularModule],
+  imports: [CommonModule, FormsModule, LucideAngularModule, SlicePipe],
   template: `
     <div class="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
 
@@ -156,6 +156,10 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
                 <div class="p-6 space-y-6">
                   <div class="grid grid-cols-2 gap-4">
                     <div class="p-4 rounded-2xl bg-muted/30 border border-border/50 space-y-1">
+                      <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Start Date</p>
+                      <p class="font-bold text-sm">{{ selected()!.startDate ? formatDeadline(selected()!.startDate!) : '—' }}</p>
+                    </div>
+                    <div class="p-4 rounded-2xl bg-muted/30 border border-border/50 space-y-1">
                       <p class="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Deadline</p>
                       <p class="font-bold text-sm">{{ formatDeadline(selected()!.deadline) }}</p>
                     </div>
@@ -216,6 +220,16 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
                         <lucide-icon [name]="Trash2" [size]="13"></lucide-icon>
                       </button>
                     </div>
+                    @if (p.submissionUrl) {
+                      <div class="ml-12 flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-xl px-3 py-2 -mt-1">
+                        <span class="text-[10px] font-black text-teal-700 uppercase tracking-widest">📎</span>
+                        <a [href]="p.submissionUrl" target="_blank"
+                           class="text-xs text-teal-600 hover:underline truncate flex-1">{{ p.submissionUrl }}</a>
+                        @if (p.submittedAt) {
+                          <span class="text-[10px] text-muted-foreground whitespace-nowrap">{{ p.submittedAt | slice:0:10 }}</span>
+                        }
+                      </div>
+                    }
                   } @empty {
                     <p class="text-center text-muted-foreground py-8 text-sm">No participants yet.</p>
                   }
@@ -304,6 +318,62 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
                 </div>
               }
 
+              <!-- News Feed (Admin) -->
+              @if (activeTab() === 'News') {
+                <div class="p-6 space-y-6">
+
+                  <!-- Post form -->
+                  <div class="bg-muted/30 rounded-2xl border border-border p-5 space-y-3">
+                    <p class="text-xs font-black uppercase tracking-widest text-muted-foreground">New Announcement</p>
+                    <input [(ngModel)]="newAnnouncementTitle" placeholder="Title *"
+                           class="w-full px-4 py-3 rounded-xl border border-border bg-white font-medium text-sm focus:ring-2 focus:ring-teal-600/20 outline-none">
+                    <textarea [(ngModel)]="newAnnouncementContent" rows="3" placeholder="Content *"
+                              class="w-full px-4 py-3 rounded-xl border border-border bg-white font-medium text-sm focus:ring-2 focus:ring-teal-600/20 outline-none resize-none"></textarea>
+                    <div class="flex items-center gap-3 flex-wrap">
+                      <select [(ngModel)]="newAnnouncementType"
+                              class="px-4 py-2.5 rounded-xl border border-border bg-white text-sm font-bold outline-none focus:ring-2 focus:ring-teal-600/20">
+                        <option value="INFO">ℹ️ Info</option>
+                        <option value="REMINDER">⏰ Reminder</option>
+                        <option value="RESULT">🏆 Result</option>
+                        <option value="ALERT">🚨 Alert</option>
+                      </select>
+                      <button (click)="postAnnouncement()"
+                              [disabled]="!newAnnouncementTitle || !newAnnouncementContent || isPostingAnnouncement()"
+                              class="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-xl font-bold text-sm transition-all active:scale-95">
+                        {{ isPostingAnnouncement() ? 'Posting…' : 'Post' }}
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Existing announcements -->
+                  @if (competitionAnnouncements().length === 0) {
+                    <p class="text-center text-muted-foreground py-8 text-sm">No announcements posted yet.</p>
+                  }
+                  <div class="space-y-3">
+                    @for (a of competitionAnnouncements(); track a.id) {
+                      <div class="flex gap-3 p-4 rounded-2xl border"
+                           [ngClass]="{
+                             'bg-blue-50 border-blue-200':    a.type === 'INFO',
+                             'bg-yellow-50 border-yellow-200': a.type === 'REMINDER',
+                             'bg-teal-50 border-teal-200':    a.type === 'RESULT',
+                             'bg-red-50 border-red-200':      a.type === 'ALERT'
+                           }">
+                        <span class="text-xl shrink-0">{{ a.type === 'INFO' ? 'ℹ️' : a.type === 'REMINDER' ? '⏰' : a.type === 'RESULT' ? '🏆' : '🚨' }}</span>
+                        <div class="flex-1">
+                          <p class="font-black text-sm">{{ a.title }}</p>
+                          <p class="text-xs text-foreground/70 mt-1">{{ a.content }}</p>
+                          <p class="text-[10px] text-muted-foreground mt-1.5">{{ a.createdAt | date:'MMM d, y · HH:mm' }}</p>
+                        </div>
+                        <button (click)="deleteAnnouncement(a.id)" class="p-1.5 hover:bg-red-100 hover:text-red-500 rounded-lg transition-colors">
+                          <lucide-icon [name]="Trash2" [size]="13"></lucide-icon>
+                        </button>
+                      </div>
+                    }
+                  </div>
+
+                </div>
+              }
+
             </div>
           } @else {
             <div class="h-80 bg-white rounded-3xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-4 text-muted-foreground">
@@ -385,11 +455,18 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
               </div>
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                  End Date &amp; Time * <span class="text-teal-600 normal-case font-medium">(countdown)</span>
+                  Start Date &amp; Time <span class="text-orange-500 normal-case font-medium">(auto ONGOING)</span>
                 </label>
-                <input [(ngModel)]="form.deadline" name="deadline" required type="datetime-local"
+                <input [(ngModel)]="form.startDate" name="startDate" type="datetime-local"
                        class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
               </div>
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                End Date &amp; Time * <span class="text-teal-600 normal-case font-medium">(auto COMPLETED)</span>
+              </label>
+              <input [(ngModel)]="form.deadline" name="deadline" required type="datetime-local"
+                     class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
@@ -451,7 +528,7 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
   readonly AlertTriangle = AlertTriangle; readonly Users = Users;
   readonly Tag = Tag; readonly Medal = Medal; readonly Star = Star; readonly Flag = Flag;
 
-  tabs = ['Overview', 'Participants', 'Leaderboard', 'Rounds', 'Rules'];
+  tabs = ['Overview', 'Participants', 'Leaderboard', 'Rounds', 'Rules', 'News'];
   activeTab    = signal('Overview');
   selected     = signal<Competition | null>(null);
   searchQuery  = '';
@@ -464,6 +541,13 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
   newParticipantEmail = '';
   rulesText = '';
   form: Omit<Competition, 'id'> = EMPTY_COMP();
+
+  // News Feed
+  competitionAnnouncements = signal<Announcement[]>([]);
+  newAnnouncementTitle   = '';
+  newAnnouncementContent = '';
+  newAnnouncementType    = 'INFO';
+  isPostingAnnouncement  = signal(false);
 
   countdown = signal<{ label: string; value: string }[]>([]);
   private countdownInterval?: ReturnType<typeof setInterval>;
@@ -500,6 +584,14 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
     this.activeTab.set('Overview');
     this.rulesText = comp.rules ?? '';
     this.startCountdown(comp.deadline);
+    this.loadAnnouncements(comp.id);
+  }
+
+  loadAnnouncements(competitionId: number | string) {
+    if (Number(competitionId) > 9_999_999_999) return;
+    this.data.getAnnouncements(competitionId).subscribe(list => {
+      this.competitionAnnouncements.set(list);
+    });
   }
 
   private startCountdown(deadlineStr: string) {
@@ -626,5 +718,28 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
     if (!this.selected()) return;
     const updated = { ...this.selected()!, rules: this.rulesText };
     this.data.updateCompetition(updated); this.selected.set(updated);
+  }
+
+  // ── News Feed ──
+  postAnnouncement() {
+    const comp = this.selected();
+    if (!comp || !this.newAnnouncementTitle || !this.newAnnouncementContent) return;
+    this.isPostingAnnouncement.set(true);
+    this.data.postAnnouncement(comp.id, this.newAnnouncementTitle, this.newAnnouncementContent, this.newAnnouncementType)
+      .subscribe(res => {
+        this.isPostingAnnouncement.set(false);
+        if (res) {
+          this.competitionAnnouncements.update(list => [res, ...list]);
+          this.newAnnouncementTitle   = '';
+          this.newAnnouncementContent = '';
+          this.newAnnouncementType    = 'INFO';
+        }
+      });
+  }
+
+  deleteAnnouncement(id: number) {
+    this.data.deleteAnnouncement(id).subscribe(() => {
+      this.competitionAnnouncements.update(list => list.filter(a => a.id !== id));
+    });
   }
 }

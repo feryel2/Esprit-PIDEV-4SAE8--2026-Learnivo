@@ -4,6 +4,7 @@ import com.learnivo.competitionservice.entity.Competition;
 import com.learnivo.competitionservice.entity.Participant;
 import com.learnivo.competitionservice.exception.ResourceNotFoundException;
 import com.learnivo.competitionservice.repository.CompetitionRepository;
+import com.learnivo.competitionservice.service.CompetitionEmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,9 @@ class CompetitionServiceTest {
 
     @Mock
     private CompetitionRepository competitionRepository;
+
+    @Mock
+    private CompetitionEmailService emailService;
 
     @InjectMocks
     private CompetitionService competitionService;
@@ -164,6 +168,62 @@ class CompetitionServiceTest {
         assertThatThrownBy(() -> competitionService.register(1L, "D", "d@test.com"))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("capacity");
+    }
+
+    // ── register – email confirmation ───────────────────────────────────
+
+    @Test
+    @DisplayName("register() envoie un email de confirmation après inscription")
+    void register_sendsConfirmationEmail() {
+        when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
+        when(competitionRepository.save(any())).thenReturn(sampleCompetition);
+
+        competitionService.register(1L, "Alice", "alice@example.com");
+
+        verify(emailService).sendRegistrationConfirmation(eq(sampleCompetition), any(Participant.class));
+    }
+
+    // ── submit ──────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("submit() enregistre l'URL de soumission du participant")
+    void submit_success() {
+        Participant alice = Participant.builder()
+                .id(10L).name("Alice").email("alice@example.com").status(Participant.Status.REGISTERED)
+                .build();
+        sampleCompetition.getParticipants().add(alice);
+        sampleCompetition.setStatus(Competition.Status.ONGOING);
+
+        when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
+        when(competitionRepository.save(any())).thenReturn(sampleCompetition);
+
+        Participant result = competitionService.submit(1L, "alice@example.com",
+                "https://github.com/alice/project", "My awesome project");
+
+        assertThat(result.getSubmissionUrl()).isEqualTo("https://github.com/alice/project");
+        assertThat(result.getSubmissionNotes()).isEqualTo("My awesome project");
+        assertThat(result.getSubmittedAt()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("submit() lève IllegalStateException si compétition COMPLETED")
+    void submit_throwsWhenCompleted() {
+        sampleCompetition.setStatus(Competition.Status.COMPLETED);
+        when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
+
+        assertThatThrownBy(() -> competitionService.submit(1L, "alice@example.com", "https://github.com", null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("closed");
+    }
+
+    @Test
+    @DisplayName("submit() lève IllegalStateException si email non inscrit")
+    void submit_throwsWhenEmailNotRegistered() {
+        when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
+
+        assertThatThrownBy(() -> competitionService.submit(1L, "unknown@example.com", "https://github.com", null))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("No registration");
     }
 
     // ── delete ──────────────────────────────────────────────────────────

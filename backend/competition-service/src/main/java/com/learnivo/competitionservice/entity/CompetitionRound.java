@@ -20,11 +20,8 @@ public class CompetitionRound {
     private String endDate;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private Status status = Status.PENDING;
 
-    public enum Status { PENDING, ACTIVE, DONE;
-        @com.fasterxml.jackson.annotation.JsonCreator
-        public static Participant.Status from(String value) {
-            return Participant.Status.valueOf(value.toUpperCase());
-        }}
+    public enum Status { PENDING, ACTIVE, DONE }
 }

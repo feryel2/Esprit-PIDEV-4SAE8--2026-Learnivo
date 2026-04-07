@@ -20,7 +20,16 @@ public class Participant {
     private String registeredAt;
     private Integer score;
 
+    @Column(columnDefinition = "TEXT")
+    private String submissionUrl;
+
+    @Column(columnDefinition = "TEXT")
+    private String submissionNotes;
+
+    private String submittedAt;
+
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private Status status = Status.REGISTERED;
 
     public enum Status {

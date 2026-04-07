@@ -26,9 +26,11 @@ public class Competition {
     private String image;
     private String category;
     private String prize;
-    private String deadline;   // ISO datetime ex: "2025-10-15T23:59:00" → utilisé pour le countdown
+    private String startDate;   // ISO datetime ex: "2025-09-01T00:00:00"
+    private String deadline;    // ISO datetime ex: "2025-10-15T23:59:00" → utilisé pour le countdown
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "status")
     private Status status = Status.UPCOMING;
 
     private Integer maxParticipants;

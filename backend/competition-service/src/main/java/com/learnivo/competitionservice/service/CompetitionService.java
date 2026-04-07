@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -17,6 +18,7 @@ import java.util.List;
 public class CompetitionService {
 
     private final CompetitionRepository competitionRepository;
+    private final CompetitionEmailService emailService;
 
     // ── Lecture ────────────────────────────────────────────────────────
 
@@ -60,6 +62,7 @@ public class CompetitionService {
         existing.setImage(updated.getImage());
         existing.setCategory(updated.getCategory());
         existing.setPrize(updated.getPrize());
+        existing.setStartDate(updated.getStartDate());
         existing.setDeadline(updated.getDeadline());
         existing.setStatus(updated.getStatus());
         existing.setMaxParticipants(updated.getMaxParticipants());
@@ -121,6 +124,31 @@ public class CompetitionService {
                 .build();
 
         comp.getParticipants().add(participant);
+        competitionRepository.save(comp);
+
+        // Envoi email de confirmation (async)
+        emailService.sendRegistrationConfirmation(comp, participant);
+
+        return participant;
+    }
+
+    // ── Soumission de projet ───────────────────────────────────────────────────
+
+    public Participant submit(Long competitionId, String email, String submissionUrl, String submissionNotes) {
+        Competition comp = findById(competitionId);
+
+        if (comp.getStatus() == Competition.Status.COMPLETED)
+            throw new IllegalStateException("This competition has already ended. Submissions are closed.");
+
+        Participant participant = comp.getParticipants().stream()
+                .filter(p -> p.getEmail().equalsIgnoreCase(email))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("No registration found for this email."));
+
+        participant.setSubmissionUrl(submissionUrl);
+        participant.setSubmissionNotes(submissionNotes);
+        participant.setSubmittedAt(LocalDateTime.now().toString());
+
         competitionRepository.save(comp);
         return participant;
     }

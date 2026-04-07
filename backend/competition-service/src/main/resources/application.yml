@@ -6,9 +6,9 @@ spring:
     name: competition-service
 
   datasource:
-    url: jdbc:mysql://localhost:3306/competition_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/competition_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&sessionVariables=sql_mode='NO_ENGINE_SUBSTITUTION'
     username: root
-    password: azerty123
+    password:
     driver-class-name: com.mysql.cj.jdbc.Driver
 
   jpa:
@@ -24,6 +24,20 @@ spring:
     openfeign:
       circuitbreaker:
         enabled: false
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: hazem.ankoud10@gmail.com
+    password: rgfr titf wzud ruzg
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
 
 eureka:
   client:

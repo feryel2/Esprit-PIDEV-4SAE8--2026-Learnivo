@@ -24,6 +24,7 @@ export interface PlatformEvent {
 export interface Participant {
   id: number | string; name: string; email: string; registeredAt: string;
   score?: number; status: 'registered' | 'disqualified' | 'winner';
+  submissionUrl?: string; submissionNotes?: string; submittedAt?: string;
 }
 export interface CompetitionRound {
   name: string; startDate: string; endDate: string;
@@ -32,10 +33,41 @@ export interface CompetitionRound {
 export interface Competition {
   id: number | string; title: string; description: string; image: string;
   slug: string; status: 'upcoming' | 'ongoing' | 'completed';
-  deadline: string; prize: string; category: string; tags?: string[];
+  startDate?: string; deadline: string; prize: string; category: string; tags?: string[];
   maxParticipants?: number; participants?: Participant[];
   rounds?: CompetitionRound[]; rules?: string; resultsPublished?: boolean;
 }
+export interface VoteStats {
+  likes: number;
+  dislikes: number;
+  score: number;
+  userVote: 'LIKE' | 'DISLIKE' | null;
+}
+
+export interface Announcement {
+  id: number;
+  competitionId: number;
+  title: string;
+  content: string;
+  type: 'INFO' | 'REMINDER' | 'RESULT' | 'ALERT';
+  createdAt: string;
+}
+
+export interface CompetitionRanking {
+  competitionId: number;
+  title: string;
+  category: string;
+  prize: string;
+  image: string;
+  slug: string;
+  status: string;
+  likes: number;
+  dislikes: number;
+  score: number;
+  participantCount: number;
+  rank: number;
+}
+
 export interface AttendanceRecord {
   date: string; attendees: (number | string)[];
 }
@@ -105,6 +137,7 @@ function toComp(b: any): Competition {
     prize:            b.prize          ?? b.recompense ?? '',
     category:         b.category       ?? b.categorie  ?? '',
     tags:             b.tags           ?? [],
+    startDate:        b.startDate      ?? '',
     maxParticipants:  b.maxParticipants ?? 0,
     resultsPublished: b.resultsPublished ?? b.resultatsPublies ?? false,
     rules:            b.rules          ?? b.regles     ?? '',
@@ -118,7 +151,10 @@ function toComp(b: any): Competition {
       id: p.id, name: p.name ?? p.nom ?? '', email: p.email ?? '',
       registeredAt: p.registeredAt ?? p.dateInscription ?? '',
       score: p.score,
-      status: (p.status ?? p.statut ?? 'registered').toLowerCase()
+      status: (p.status ?? p.statut ?? 'registered').toLowerCase(),
+      submissionUrl: p.submissionUrl ?? null,
+      submissionNotes: p.submissionNotes ?? null,
+      submittedAt: p.submittedAt ?? null,
     })),
   };
 }
@@ -126,8 +162,8 @@ function toComp(b: any): Competition {
 function fromComp(c: Omit<Competition, 'id'>): any {
   return {
     title: c.title, description: c.description, image: c.image, slug: c.slug,
-    status: c.status?.toUpperCase(), deadline: c.deadline, prize: c.prize,
-    category: c.category, tags: c.tags, maxParticipants: c.maxParticipants,
+    status: c.status?.toUpperCase(), startDate: c.startDate, deadline: c.deadline,
+    prize: c.prize, category: c.category, tags: c.tags, maxParticipants: c.maxParticipants,
     rules: c.rules, resultsPublished: c.resultsPublished, rounds: c.rounds,
     participants: c.participants,
   };
@@ -279,6 +315,62 @@ export class DataService {
       catchError(() => of(null))
     ).subscribe();
     return null;
+  }
+
+  // ── VOTES & CLASSEMENT ─────────────────────────────────────────────────────
+
+  /** Vote LIKE ou DISLIKE sur une compétition (toggle si même vote) */
+  voteCompetition(competitionId: number | string, email: string, voteType: 'LIKE' | 'DISLIKE') {
+    return this.http.post<VoteStats>(
+      `${COMP_API}/competitions/${competitionId}/vote`,
+      { email, voteType }
+    ).pipe(catchError(() => of(null)));
+  }
+
+  /** Récupère les stats de votes pour une compétition */
+  getVoteStats(competitionId: number | string, email?: string) {
+    const params = email ? `?email=${encodeURIComponent(email)}` : '';
+    return this.http.get<VoteStats>(
+      `${COMP_API}/competitions/${competitionId}/votes${params}`
+    ).pipe(catchError(() => of({ likes: 0, dislikes: 0, score: 0, userVote: null } as VoteStats)));
+  }
+
+  /** Soumission de projet d'un participant */
+  submitProject(competitionId: number | string, email: string, submissionUrl: string, submissionNotes: string) {
+    return this.http.post<Participant>(
+      `${COMP_API}/competitions/${competitionId}/submit`,
+      { email, submissionUrl, submissionNotes }
+    ).pipe(catchError(() => of(null)));
+  }
+
+  /** Classement global des compétitions par popularité */
+  getCompetitionRanking() {
+    return this.http.get<CompetitionRanking[]>(`${COMP_API}/competitions/ranking`)
+      .pipe(catchError(() => of([])));
+  }
+
+  // ── ANNONCES (news feed) ───────────────────────────────────────────────────
+
+  /** Récupère les annonces d'une compétition (ordre antéchronologique) */
+  getAnnouncements(competitionId: number | string) {
+    return this.http.get<Announcement[]>(
+      `${COMP_API}/competitions/${competitionId}/announcements`
+    ).pipe(catchError(() => of([] as Announcement[])));
+  }
+
+  /** Poste une nouvelle annonce (admin) */
+  postAnnouncement(competitionId: number | string, title: string, content: string, type: string) {
+    return this.http.post<Announcement>(
+      `${COMP_API}/competitions/${competitionId}/announcements`,
+      { title, content, type }
+    ).pipe(catchError(() => of(null)));
+  }
+
+  /** Supprime une annonce (admin) */
+  deleteAnnouncement(announcementId: number) {
+    return this.http.delete(
+      `${COMP_API}/competitions/announcements/${announcementId}`
+    ).pipe(catchError(() => of(null)));
   }
 
   // ── CRUD local trainings/clubs/events (inchangé) ───────────────────────────

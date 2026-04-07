@@ -1,6 +1,7 @@
 package com.learnivo.competitionservice.controller;
 
 import com.learnivo.competitionservice.dto.RegisterDTO;
+import com.learnivo.competitionservice.dto.SubmissionDTO;
 import com.learnivo.competitionservice.entity.Competition;
 import com.learnivo.competitionservice.entity.Participant;
 import com.learnivo.competitionservice.service.CompetitionService;
@@ -61,6 +62,20 @@ public class CompetitionController {
         try {
             Participant participant = competitionService.register(
                     id, dto.getName(), dto.getEmail());
+            return ResponseEntity.ok(participant);
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ── Soumission de projet ────────────────────────────────────────────
+
+    @PostMapping("/{id}/submit")
+    public ResponseEntity<?> submit(@PathVariable Long id,
+                                    @RequestBody SubmissionDTO dto) {
+        try {
+            Participant participant = competitionService.submit(
+                    id, dto.getEmail(), dto.getSubmissionUrl(), dto.getSubmissionNotes());
             return ResponseEntity.ok(participant);
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
