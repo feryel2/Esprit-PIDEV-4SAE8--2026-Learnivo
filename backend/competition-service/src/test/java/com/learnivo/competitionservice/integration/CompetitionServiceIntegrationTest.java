@@ -4,11 +4,13 @@ import com.learnivo.competitionservice.dto.RegisterDTO;
 import com.learnivo.competitionservice.entity.Competition;
 import com.learnivo.competitionservice.entity.Participant;
 import com.learnivo.competitionservice.repository.CompetitionRepository;
+import com.learnivo.competitionservice.service.CompetitionEmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.core.ParameterizedTypeReference;
@@ -35,6 +37,9 @@ class CompetitionServiceIntegrationTest {
 
     @Autowired
     private CompetitionRepository competitionRepository;
+
+    @MockBean
+    private CompetitionEmailService emailService;
 
     private String getBaseUrl() {
         return "http://localhost:" + port + "/api/competitions";

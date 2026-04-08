@@ -408,15 +408,18 @@ type ModalStep = 'form' | 'confirm' | 'success';
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Project URL *</label>
                 <input [(ngModel)]="submitUrl" placeholder="https://github.com/you/project"
+                       [ngClass]="{'border-red-500 ring-red-500/10': submitUrl && !isValidUrl(submitUrl)}"
                        class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none transition-all">
-                <p class="text-[10px] text-muted-foreground">GitHub, Drive, Notion, YouTube, etc.</p>
+                @if (submitUrl && !isValidUrl(submitUrl)) {
+                  <p class="text-[10px] text-red-500 font-bold px-1">Must be a valid URL (http/https).</p>
+                }
               </div>
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Notes (optional)</label>
                 <textarea [(ngModel)]="submitNotes" rows="3" placeholder="Describe your project briefly…"
                           class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none resize-none transition-all"></textarea>
               </div>
-              <button (click)="doSubmit()" [disabled]="!submitUrl || isSubmitting()"
+              <button (click)="doSubmit()" [disabled]="!isValidUrl(submitUrl) || isSubmitting()"
                       class="w-full py-4 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-teal-600/20 active:scale-95">
                 {{ isSubmitting() ? 'Submitting…' : '📎 Submit Project' }}
               </button>
@@ -463,25 +466,41 @@ type ModalStep = 'form' | 'confirm' | 'success';
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Full Name *</label>
                 <input [(ngModel)]="regName" placeholder="e.g. Sarah Al-Amin"
+                       [ngClass]="{'border-red-500 ring-red-500/10': regName && regName.length < 3}"
                        class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none transition-all">
+                @if (regName && regName.length < 3) {
+                  <p class="text-[10px] text-red-500 font-bold px-1">Must be at least 3 characters.</p>
+                }
               </div>
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Email Address *</label>
                 <input [(ngModel)]="regEmail" type="email" placeholder="you@example.com"
+                       [ngClass]="{'border-red-500 ring-red-500/10': regEmail && !isValidEmail(regEmail)}"
                        class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none transition-all">
+                @if (regEmail && !isValidEmail(regEmail)) {
+                  <p class="text-[10px] text-red-500 font-bold px-1">Please enter a valid email.</p>
+                }
               </div>
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Phone (optional)</label>
                 <input [(ngModel)]="regPhone" placeholder="+213 555 000 000"
+                       [ngClass]="{'border-red-500 ring-red-500/10': regPhone && !isValidPhone(regPhone)}"
                        class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none transition-all">
+                @if (regPhone && !isValidPhone(regPhone)) {
+                  <p class="text-[10px] text-red-500 font-bold px-1">Invalid phone format (e.g. +216 55 555 555).</p>
+                }
               </div>
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Why do you want to join?</label>
                 <textarea [(ngModel)]="regMotivation" rows="3" placeholder="Tell us about your background and motivation..."
+                          [ngClass]="{'border-red-500 ring-red-500/10': regMotivation && regMotivation.length < 10}"
                           class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none resize-none transition-all"></textarea>
+                @if (regMotivation && regMotivation.length < 10) {
+                  <p class="text-[10px] text-red-500 font-bold px-1">Write at least 10 characters.</p>
+                }
               </div>
 
-              <button (click)="goToConfirm()" [disabled]="!regName || !regEmail"
+              <button (click)="goToConfirm()" [disabled]="!isFormValid()"
                       class="w-full py-3.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-2xl font-bold text-lg transition-all shadow-lg shadow-teal-600/20 active:scale-95 flex items-center justify-center gap-2">
                 Continue <lucide-icon [name]="ChevronRight" [size]="18"></lucide-icon>
               </button>
@@ -644,7 +663,13 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
       if (comp) {
         this.startCountdown(comp.deadline);
         const key = `reg_comp_${comp.id}`;
-        this.alreadyRegistered.set(localStorage.getItem(key) === 'true');
+        const emailKey = `reg_comp_email_${comp.id}`;
+        const registered = localStorage.getItem(key) === 'true';
+        this.alreadyRegistered.set(registered);
+        if (registered) {
+          const storedEmail = localStorage.getItem(emailKey);
+          if (storedEmail) this.regEmail = storedEmail;
+        }
         this.loadVoteStats(comp.id);
         this.loadAnnouncements(comp.id);
       }
@@ -698,9 +723,14 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
     this.showSubmitModal.set(true);
   }
 
+  isValidUrl(url: string) {
+    if (!url) return false;
+    return /^(http|https):\/\/[^ "]+$/.test(url.trim());
+  }
+
   doSubmit() {
     const comp = this.comp();
-    if (!comp || !this.submitUrl.trim()) return;
+    if (!comp || !this.isValidUrl(this.submitUrl)) return;
     const email = this.regEmail || this.voterEmail() || localStorage.getItem('learnivo_voter_email') || '';
     if (!email) { this.submitError.set('Your email is not available. Please re-register.'); return; }
 
@@ -729,10 +759,25 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
   openModal() { this.step.set('form'); this.formError.set(null); this.showModal.set(true); }
   closeModal() { this.showModal.set(false); }
 
+  isValidEmail(email: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  isValidPhone(phone: string) {
+    if (!phone) return true;
+    return /^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/.test(phone.replace(/\s/g, ''));
+  }
+
+  isFormValid() {
+    return this.regName.trim().length >= 3 &&
+           this.isValidEmail(this.regEmail) &&
+           this.isValidPhone(this.regPhone) &&
+           (!this.regMotivation || this.regMotivation.length >= 10);
+  }
+
   goToConfirm() {
-    if (!this.regName.trim() || !this.regEmail.trim()) return;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.regEmail)) {
-      this.formError.set('Please enter a valid email address.');
+    if (!this.isFormValid()) {
+      this.formError.set('Please fix the errors in the form.');
       return;
     }
     this.formError.set(null);
@@ -770,10 +815,13 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
 
   castVote(type: 'LIKE' | 'DISLIKE') {
     const comp = this.comp();
-    if (!comp || !this.alreadyRegistered() || !this.regEmail || this.isVoting()) return;
+    if (!comp || !this.alreadyRegistered() || this.isVoting()) return;
+
+    const email = this.regEmail.trim() || localStorage.getItem(`reg_comp_email_${comp.id}`);
+    if (!email) return;
 
     this.isVoting.set(true);
-    this.dataService.voteCompetition(comp.id, this.regEmail, type).subscribe({
+    this.dataService.voteCompetition(comp.id, email, type).subscribe({
       next: stats => {
         if (stats) this.voteStats.set(stats);
         this.isVoting.set(false);
@@ -805,7 +853,7 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
   submitRegistration() {
     const comp = this.comp();
     if (!comp) return;
-    const err = this.dataService.registerForCompetition(comp.id, this.regName.trim(), this.regEmail.trim());
+    const err = this.dataService.registerForCompetition(comp.id, this.regName.trim(), this.regEmail.trim(), this.regPhone.trim(), this.regMotivation.trim());
     if (err) {
       this.formError.set(err);
       return;

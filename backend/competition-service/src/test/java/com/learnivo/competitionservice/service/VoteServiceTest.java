@@ -1,7 +1,9 @@
 package com.learnivo.competitionservice.service;
 
 import com.learnivo.competitionservice.dto.VoteStatsDTO;
+import com.learnivo.competitionservice.entity.Competition;
 import com.learnivo.competitionservice.entity.CompetitionVote;
+import com.learnivo.competitionservice.entity.Participant;
 import com.learnivo.competitionservice.repository.CompetitionRepository;
 import com.learnivo.competitionservice.repository.CompetitionVoteRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.ArrayList;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -27,10 +30,21 @@ class VoteServiceTest {
 
     @InjectMocks
     private VoteService voteService;
+    private Competition sampleCompetition;
 
     @BeforeEach
     void setUp() {
-        when(competitionRepository.existsById(1L)).thenReturn(true);
+        sampleCompetition = Competition.builder()
+                .id(1L)
+                .participants(new ArrayList<>())
+                .build();
+        
+        sampleCompetition.getParticipants().add(
+                Participant.builder().email("alice@test.com").build()
+        );
+
+        lenient().when(competitionRepository.existsById(1L)).thenReturn(true);
+        lenient().when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
     }
 
     // ── vote() ─────────────────────────────────────────────────────────────────

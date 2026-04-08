@@ -22,7 +22,9 @@ export interface PlatformEvent {
   type?: 'past' | 'next'; overview?: string; expectations?: string[]; album?: string[];
 }
 export interface Participant {
-  id: number | string; name: string; email: string; registeredAt: string;
+  id: number | string; name: string; email: string;
+  phone?: string; motivation?: string;
+  registeredAt: string;
   score?: number; status: 'registered' | 'disqualified' | 'winner';
   submissionUrl?: string; submissionNotes?: string; submittedAt?: string;
 }
@@ -149,6 +151,7 @@ function toComp(b: any): Competition {
     })),
     participants: (b.participants ?? []).map((p: any) => ({
       id: p.id, name: p.name ?? p.nom ?? '', email: p.email ?? '',
+      phone: p.phone, motivation: p.motivation,
       registeredAt: p.registeredAt ?? p.dateInscription ?? '',
       score: p.score,
       status: (p.status ?? p.statut ?? 'registered').toLowerCase(),
@@ -295,25 +298,34 @@ export class DataService {
   }
 
   /** User public — inscription à une compétition */
-  registerForCompetition(competitionId: number | string, name: string, email: string): string | null {
+  registerForCompetition(competitionId: number | string, name: string, email: string, phone?: string, motivation?: string): string | null {
     const comp = this.competitions().find(c => c.id === competitionId);
     if (!comp) return 'Competition not found.';
     if (comp.status === 'completed') return 'This competition has already ended.';
     if ((comp.participants ?? []).some(p => p.email.toLowerCase() === email.toLowerCase()))
       return 'This email is already registered for this competition.';
-    if ((comp.participants ?? []).length >= (comp.maxParticipants ?? Infinity))
-      return 'Sorry, registrations are closed — maximum capacity reached.';
 
     const newP: Participant = {
-      id: Date.now(), name, email,
+      id: Date.now(), name, email, phone, motivation,
       registeredAt: new Date().toISOString().slice(0, 10), status: 'registered'
     };
     const updated = { ...comp, participants: [...(comp.participants ?? []), newP] };
     this.competitions.update(list => list.map(c => c.id === competitionId ? updated : c));
 
-    this.http.post(`${COMP_API}/competitions/${competitionId}/register`, { name, email }).pipe(
+    this.http.post<any>(`${COMP_API}/competitions/${competitionId}/register`, { name, email, phone, motivation }).pipe(
       catchError(() => of(null))
-    ).subscribe();
+    ).subscribe(res => {
+      if (res) {
+        // Replace temp participant with real one from backend (has real ID)
+        this.competitions.update(list => list.map(c => {
+          if (c.id === competitionId) {
+            const filtered = (c.participants ?? []).filter(p => p.email.toLowerCase() !== email.toLowerCase());
+            return { ...c, participants: [...filtered, toComp({ participants: [res] }).participants![0]] };
+          }
+          return c;
+        }));
+      }
+    });
     return null;
   }
 

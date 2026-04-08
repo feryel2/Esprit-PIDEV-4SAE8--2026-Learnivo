@@ -5,6 +5,7 @@ import com.learnivo.competitionservice.dto.SubmissionDTO;
 import com.learnivo.competitionservice.entity.Competition;
 import com.learnivo.competitionservice.entity.Participant;
 import com.learnivo.competitionservice.service.CompetitionService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -58,10 +59,9 @@ public class CompetitionController {
 
     @PostMapping("/{id}/register")
     public ResponseEntity<?> register(@PathVariable Long id,
-                                       @RequestBody RegisterDTO dto) {
+                                       @Valid @RequestBody RegisterDTO dto) {
         try {
-            Participant participant = competitionService.register(
-                    id, dto.getName(), dto.getEmail());
+            Participant participant = competitionService.register(id, dto);
             return ResponseEntity.ok(participant);
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
@@ -72,7 +72,7 @@ public class CompetitionController {
 
     @PostMapping("/{id}/submit")
     public ResponseEntity<?> submit(@PathVariable Long id,
-                                    @RequestBody SubmissionDTO dto) {
+                                    @Valid @RequestBody SubmissionDTO dto) {
         try {
             Participant participant = competitionService.submit(
                     id, dto.getEmail(), dto.getSubmissionUrl(), dto.getSubmissionNotes());

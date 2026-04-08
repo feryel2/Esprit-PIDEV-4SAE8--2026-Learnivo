@@ -1,5 +1,6 @@
 package com.learnivo.competitionservice.service;
 
+import com.learnivo.competitionservice.dto.RegisterDTO;
 import com.learnivo.competitionservice.entity.Competition;
 import com.learnivo.competitionservice.entity.Participant;
 import com.learnivo.competitionservice.exception.ResourceNotFoundException;
@@ -101,14 +102,14 @@ public class CompetitionService {
 
     // ── Inscription user public ────────────────────────────────────────
 
-    public Participant register(Long competitionId, String name, String email) {
+    public Participant register(Long competitionId, RegisterDTO dto) {
         Competition comp = findById(competitionId);
 
         if (comp.getStatus() == Competition.Status.COMPLETED)
             throw new IllegalStateException("This competition has already ended.");
 
         boolean already = comp.getParticipants().stream()
-                .anyMatch(p -> p.getEmail().equalsIgnoreCase(email));
+                .anyMatch(p -> p.getEmail().equalsIgnoreCase(dto.getEmail()));
         if (already)
             throw new IllegalStateException("This email is already registered.");
 
@@ -117,8 +118,10 @@ public class CompetitionService {
             throw new IllegalStateException("Maximum capacity reached.");
 
         Participant participant = Participant.builder()
-                .name(name)
-                .email(email)
+                .name(dto.getName())
+                .email(dto.getEmail())
+                .phone(dto.getPhone())
+                .motivation(dto.getMotivation())
                 .registeredAt(LocalDate.now().toString())
                 .status(Participant.Status.REGISTERED)
                 .build();

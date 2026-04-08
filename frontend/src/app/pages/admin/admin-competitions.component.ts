@@ -220,16 +220,28 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
                         <lucide-icon [name]="Trash2" [size]="13"></lucide-icon>
                       </button>
                     </div>
-                    @if (p.submissionUrl) {
-                      <div class="ml-12 flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-xl px-3 py-2 -mt-1">
-                        <span class="text-[10px] font-black text-teal-700 uppercase tracking-widest">📎</span>
-                        <a [href]="p.submissionUrl" target="_blank"
-                           class="text-xs text-teal-600 hover:underline truncate flex-1">{{ p.submissionUrl }}</a>
-                        @if (p.submittedAt) {
-                          <span class="text-[10px] text-muted-foreground whitespace-nowrap">{{ p.submittedAt | slice:0:10 }}</span>
+                      <div class="ml-12 flex flex-col gap-1">
+                        @if (p.phone || p.motivation) {
+                          <div class="flex items-center gap-3 text-xs bg-muted/30 border border-border/50 rounded-xl px-3 py-2">
+                             @if (p.phone) {
+                               <span class="text-muted-foreground">📞 {{ p.phone }}</span>
+                             }
+                             @if (p.motivation) {
+                               <span class="text-muted-foreground italic line-clamp-1" [title]="p.motivation">💬 "{{ p.motivation }}"</span>
+                             }
+                          </div>
+                        }
+                        @if (p.submissionUrl) {
+                          <div class="flex items-center gap-2 bg-teal-50 border border-teal-100 rounded-xl px-3 py-2">
+                            <span class="text-[10px] font-black text-teal-700 uppercase tracking-widest">📎</span>
+                            <a [href]="p.submissionUrl" target="_blank"
+                               class="text-xs text-teal-600 hover:underline truncate flex-1">{{ p.submissionUrl }}</a>
+                            @if (p.submittedAt) {
+                              <span class="text-[10px] text-muted-foreground whitespace-nowrap">{{ p.submittedAt | slice:0:10 }}</span>
+                            }
+                          </div>
                         }
                       </div>
-                    }
                   } @empty {
                     <p class="text-center text-muted-foreground py-8 text-sm">No participants yet.</p>
                   }
@@ -401,6 +413,10 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
                    class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
             <input [(ngModel)]="newParticipantEmail" placeholder="Email address *"
                    class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
+            <input [(ngModel)]="newParticipantPhone" placeholder="Phone number"
+                   class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
+            <textarea [(ngModel)]="newParticipantMotivation" placeholder="Motivation..." rows="2"
+                   class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none resize-none"></textarea>
           </div>
           <div class="flex gap-3">
             <button (click)="addParticipant()" [disabled]="!newParticipantName || !newParticipantEmail"
@@ -424,12 +440,20 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
             <div class="space-y-1.5">
               <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Title *</label>
               <input [(ngModel)]="form.title" name="title" required placeholder="Competition name"
+                     [ngClass]="{'border-red-500 ring-red-500/10': form.title && form.title.length < 5}"
                      class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
+              @if (form.title && form.title.length < 5) {
+                <p class="text-[10px] text-red-500 font-bold px-1">Title must be at least 5 characters.</p>
+              }
             </div>
             <div class="space-y-1.5">
               <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Description *</label>
               <textarea [(ngModel)]="form.description" name="description" rows="2" placeholder="Brief description…"
+                        [ngClass]="{'border-red-500 ring-red-500/10': form.description && form.description.length < 20}"
                         class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none resize-none"></textarea>
+              @if (form.description && form.description.length < 20) {
+                <p class="text-[10px] text-red-500 font-bold px-1">Description must be at least 20 characters.</p>
+              }
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
@@ -455,7 +479,7 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
               </div>
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                  Start Date &amp; Time <span class="text-orange-500 normal-case font-medium">(auto ONGOING)</span>
+                  Start Date &amp; Time
                 </label>
                 <input [(ngModel)]="form.startDate" name="startDate" type="datetime-local"
                        class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
@@ -463,16 +487,26 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
             </div>
             <div class="space-y-1.5">
               <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                End Date &amp; Time * <span class="text-teal-600 normal-case font-medium">(auto COMPLETED)</span>
+                End Date (Deadline) *
               </label>
               <input [(ngModel)]="form.deadline" name="deadline" required type="datetime-local"
+                     [ngClass]="{'border-red-500 ring-red-500/10': !isDeadlineValid()}"
                      class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
+              @if (form.deadline && form.startDate && form.deadline <= form.startDate) {
+                <p class="text-[10px] text-red-500 font-bold px-1">Deadline must be after start date.</p>
+              } @else if (form.deadline && !isEditing() && isDateInPast(form.deadline)) {
+                <p class="text-[10px] text-red-500 font-bold px-1">Deadline cannot be in the past.</p>
+              }
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Max Participants</label>
                 <input [(ngModel)]="form.maxParticipants" name="maxParticipants" type="number" placeholder="50"
+                       [ngClass]="{'border-red-500 ring-red-500/10': form.maxParticipants && form.maxParticipants < 1}"
                        class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
+                @if (form.maxParticipants && form.maxParticipants < 1) {
+                  <p class="text-[10px] text-red-500 font-bold px-1">Minimum 1 participant.</p>
+                }
               </div>
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Tags (comma-sep)</label>
@@ -487,7 +521,7 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
                      class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
             </div>
             <div class="flex gap-3 pt-4 border-t border-border">
-              <button type="submit" [disabled]="!form.title || !form.prize || !form.deadline"
+              <button type="submit" [disabled]="!isFormValid()"
                       class="flex-1 py-3 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-2xl font-bold transition-all shadow-lg shadow-teal-600/20 active:scale-95">
                 {{ isEditing() ? 'Save Changes' : 'Create' }}
               </button>
@@ -539,6 +573,8 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
   showParticipantModal = signal(false);
   newParticipantName  = '';
   newParticipantEmail = '';
+  newParticipantPhone = '';
+  newParticipantMotivation = '';
   rulesText = '';
   form: Omit<Competition, 'id'> = EMPTY_COMP();
 
@@ -642,8 +678,28 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
   closeModal() { this.showModal.set(false); }
   onTagsChange(value: string) { this.form.tags = value.split(',').map(t => t.trim()).filter(Boolean); }
 
+  isDateInPast(iso: string) {
+    if (!iso) return false;
+    return new Date(iso).getTime() < Date.now();
+  }
+
+  isDeadlineValid() {
+    if (!this.form.deadline) return false;
+    if (this.form.startDate && this.form.deadline <= this.form.startDate) return false;
+    if (!this.isEditing() && this.isDateInPast(this.form.deadline)) return false;
+    return true;
+  }
+
+  isFormValid() {
+    return this.form.title && this.form.title.length >= 5 &&
+           this.form.description && this.form.description.length >= 20 &&
+           this.form.prize &&
+           this.isDeadlineValid() &&
+           (!this.form.maxParticipants || this.form.maxParticipants >= 1);
+  }
+
   save() {
-    if (!this.form.title || !this.form.prize || !this.form.deadline) return;
+    if (!this.isFormValid()) return;
     if (!this.form.slug)
       this.form.slug = this.form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
     if (this.isEditing() && this.editId() !== null) {
@@ -672,10 +728,24 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
   }
 
   // ── Participants ──
-  openAddParticipant() { this.newParticipantName = ''; this.newParticipantEmail = ''; this.showParticipantModal.set(true); }
+  openAddParticipant() {
+    this.newParticipantName = '';
+    this.newParticipantEmail = '';
+    this.newParticipantPhone = '';
+    this.newParticipantMotivation = '';
+    this.showParticipantModal.set(true);
+  }
   addParticipant() {
     if (!this.selected() || !this.newParticipantName || !this.newParticipantEmail) return;
-    const newP: Participant = { id: Date.now(), name: this.newParticipantName, email: this.newParticipantEmail, registeredAt: new Date().toISOString().slice(0,10), status: 'registered' };
+    const newP: Participant = {
+      id: Date.now(),
+      name: this.newParticipantName,
+      email: this.newParticipantEmail,
+      phone: this.newParticipantPhone,
+      motivation: this.newParticipantMotivation,
+      registeredAt: new Date().toISOString().slice(0,10),
+      status: 'registered'
+    };
     const updated = { ...this.selected()!, participants: [...(this.selected()!.participants??[]), newP] };
     this.data.updateCompetition(updated); this.selected.set(updated);
     this.showParticipantModal.set(false);

@@ -17,6 +17,11 @@ public class Participant {
 
     private String name;
     private String email;
+    private String phone;
+
+    @Column(columnDefinition = "TEXT")
+    private String motivation;
+
     private String registeredAt;
     private Integer score;
 
@@ -30,6 +35,7 @@ public class Participant {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status")
+    @Builder.Default
     private Status status = Status.REGISTERED;
 
     public enum Status {

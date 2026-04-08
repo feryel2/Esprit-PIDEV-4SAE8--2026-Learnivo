@@ -1,10 +1,10 @@
 package com.learnivo.competitionservice.service;
 
+import com.learnivo.competitionservice.dto.RegisterDTO;
 import com.learnivo.competitionservice.entity.Competition;
 import com.learnivo.competitionservice.entity.Participant;
 import com.learnivo.competitionservice.exception.ResourceNotFoundException;
 import com.learnivo.competitionservice.repository.CompetitionRepository;
-import com.learnivo.competitionservice.service.CompetitionEmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -122,7 +122,8 @@ class CompetitionServiceTest {
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
         when(competitionRepository.save(any())).thenReturn(sampleCompetition);
 
-        Participant result = competitionService.register(1L, "Alice", "alice@example.com");
+        RegisterDTO dto = new RegisterDTO("Alice", "alice@example.com", "123456", "Go!");
+        Participant result = competitionService.register(1L, dto);
 
         assertThat(result.getName()).isEqualTo("Alice");
         assertThat(result.getEmail()).isEqualTo("alice@example.com");
@@ -136,7 +137,8 @@ class CompetitionServiceTest {
         sampleCompetition.setStatus(Competition.Status.COMPLETED);
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
 
-        assertThatThrownBy(() -> competitionService.register(1L, "Alice", "alice@example.com"))
+        RegisterDTO dto = new RegisterDTO("Alice", "alice@example.com", null, null);
+        assertThatThrownBy(() -> competitionService.register(1L, dto))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("ended");
     }
@@ -148,7 +150,8 @@ class CompetitionServiceTest {
                 Participant.builder().name("Alice").email("alice@example.com").build());
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
 
-        assertThatThrownBy(() -> competitionService.register(1L, "Alice", "alice@example.com"))
+        RegisterDTO dto = new RegisterDTO("Alice", "alice@example.com", null, null);
+        assertThatThrownBy(() -> competitionService.register(1L, dto))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("already registered");
     }
@@ -165,7 +168,8 @@ class CompetitionServiceTest {
                 Participant.builder().name("C").email("c@test.com").build());
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
 
-        assertThatThrownBy(() -> competitionService.register(1L, "D", "d@test.com"))
+        RegisterDTO dto = new RegisterDTO("D", "d@test.com", null, null);
+        assertThatThrownBy(() -> competitionService.register(1L, dto))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("capacity");
     }
@@ -178,7 +182,8 @@ class CompetitionServiceTest {
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
         when(competitionRepository.save(any())).thenReturn(sampleCompetition);
 
-        competitionService.register(1L, "Alice", "alice@example.com");
+        RegisterDTO dto = new RegisterDTO("Alice", "alice@example.com", null, null);
+        competitionService.register(1L, dto);
 
         verify(emailService).sendRegistrationConfirmation(eq(sampleCompetition), any(Participant.class));
     }
