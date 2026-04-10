@@ -107,6 +107,22 @@ public class CompetitionService {
 
         if (comp.getStatus() == Competition.Status.COMPLETED)
             throw new IllegalStateException("This competition has already ended.");
+        
+        if (comp.getDeadline() != null && !comp.getDeadline().isBlank()) {
+            try {
+                java.time.LocalDateTime deadlineDate;
+                if (comp.getDeadline().endsWith("Z") || comp.getDeadline().contains("+")) {
+                    deadlineDate = java.time.ZonedDateTime.parse(comp.getDeadline()).toLocalDateTime();
+                } else {
+                    deadlineDate = java.time.LocalDateTime.parse(comp.getDeadline());
+                }
+                if (java.time.LocalDateTime.now().isAfter(deadlineDate)) {
+                    throw new IllegalStateException("Registration is closed. The deadline has passed.");
+                }
+            } catch (Exception e) {
+                // In case of parsing error, we continue to allow.
+            }
+        }
 
         boolean already = comp.getParticipants().stream()
                 .anyMatch(p -> p.getEmail().equalsIgnoreCase(dto.getEmail()));
@@ -142,6 +158,22 @@ public class CompetitionService {
 
         if (comp.getStatus() == Competition.Status.COMPLETED)
             throw new IllegalStateException("This competition has already ended. Submissions are closed.");
+
+        if (comp.getDeadline() != null && !comp.getDeadline().isBlank()) {
+            try {
+                java.time.LocalDateTime deadlineDate;
+                if (comp.getDeadline().endsWith("Z") || comp.getDeadline().contains("+")) {
+                    deadlineDate = java.time.ZonedDateTime.parse(comp.getDeadline()).toLocalDateTime();
+                } else {
+                    deadlineDate = java.time.LocalDateTime.parse(comp.getDeadline());
+                }
+                if (java.time.LocalDateTime.now().isAfter(deadlineDate)) {
+                    throw new IllegalStateException("Submissions are closed. The deadline has passed.");
+                }
+            } catch (Exception e) {
+                // In case of parsing error, we continue to allow.
+            }
+        }
 
         Participant participant = comp.getParticipants().stream()
                 .filter(p -> p.getEmail().equalsIgnoreCase(email))

@@ -284,10 +284,10 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
                   @for (round of (selected()!.rounds||[]); track round.name; let i = $index) {
                     <div class="p-5 rounded-2xl border border-border space-y-3">
                       <div class="flex items-center justify-between">
-                        <input [(ngModel)]="round.name" (change)="saveRounds()" placeholder="Round name"
+                        <input [(ngModel)]="round.name" (change)="validateAndSaveRounds()" placeholder="Round name"
                                class="font-bold text-sm bg-transparent outline-none flex-1 focus:bg-muted/30 rounded-lg px-2 py-1">
                         <div class="flex items-center gap-2">
-                          <select [(ngModel)]="round.status" (change)="saveRounds()"
+                          <select [(ngModel)]="round.status" (change)="validateAndSaveRounds()"
                                   class="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-border bg-white outline-none"
                                   [ngClass]="{'text-teal-600':round.status==='active','text-muted-foreground':round.status==='pending','text-blue-600':round.status==='done'}">
                             <option value="pending">Pending</option>
@@ -302,15 +302,24 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
                       <div class="grid grid-cols-2 gap-3">
                         <div class="space-y-1">
                           <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Start</label>
-                          <input [(ngModel)]="round.startDate" (change)="saveRounds()" placeholder="Sep 1, 2025"
+                          <input [(ngModel)]="round.startDate" type="datetime-local" (change)="validateAndSaveRounds()"
+                                 [min]="round.status === 'pending' ? todayLocalString() : null"
+                                 [ngClass]="{'border-red-500 ring-red-500/10': (round.endDate && round.startDate && round.startDate >= round.endDate) || (round.status === 'pending' && isDateInPast(round.startDate))}"
                                  class="w-full text-sm px-3 py-2 rounded-xl border border-border bg-muted/20 outline-none focus:ring-2 focus:ring-teal-600/20">
                         </div>
                         <div class="space-y-1">
                           <label class="text-[9px] font-black uppercase tracking-widest text-muted-foreground">End</label>
-                          <input [(ngModel)]="round.endDate" (change)="saveRounds()" placeholder="Oct 15, 2025"
+                          <input [(ngModel)]="round.endDate" type="datetime-local" (change)="validateAndSaveRounds()"
+                                 [min]="round.startDate || (round.status === 'pending' ? todayLocalString() : null)"
+                                 [ngClass]="{'border-red-500 ring-red-500/10': (round.endDate && round.startDate && round.endDate <= round.startDate) || (round.status === 'pending' && isDateInPast(round.endDate))}"
                                  class="w-full text-sm px-3 py-2 rounded-xl border border-border bg-muted/20 outline-none focus:ring-2 focus:ring-teal-600/20">
                         </div>
                       </div>
+                      @if (round.endDate && round.startDate && round.endDate <= round.startDate) {
+                        <p class="text-[10px] text-red-500 font-bold px-1">End time must be after start time.</p>
+                      } @else if (round.status === 'pending' && (isDateInPast(round.startDate) || isDateInPast(round.endDate))) {
+                        <p class="text-[10px] text-red-500 font-bold px-1">Round dates cannot be in the past.</p>
+                      }
                     </div>
                   } @empty {
                     <p class="text-center text-muted-foreground py-8 text-sm">No rounds defined yet.</p>
@@ -458,8 +467,24 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Category *</label>
-                <input [(ngModel)]="form.category" name="category" required placeholder="e.g. Speaking"
-                       class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
+                <select [(ngModel)]="form.category" name="category" required
+                        class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
+                  <option value="" disabled selected>Select a category</option>
+                  <option value="Speaking">🗣️ Speaking</option>
+                  <option value="Skills Test">🛠️ Skills Test</option>
+                  <option value="Thinking">🧠 Thinking</option>
+                  <option value="Coding">💻 Coding</option>
+                  <option value="Design">🎨 Design</option>
+                  <option value="Debate">⚖️ Debate</option>
+                  <option value="Science">🔬 Science</option>
+                  <option value="Math">📐 Math</option>
+                  <option value="Writing">✍️ Writing</option>
+                  <option value="Innovation">🚀 Innovation</option>
+                  <option value="Robotics">🤖 Robotics</option>
+                  <option value="Arts & Crafts">🎭 Arts & Crafts</option>
+                  <option value="Business">💼 Business & Pitching</option>
+                  <option value="Other">✨ Other</option>
+                </select>
               </div>
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Status *</label>
@@ -473,32 +498,38 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
             </div>
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
+                <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                  Start Date &amp; Time *
+                </label>
+                <input [(ngModel)]="form.startDate" name="startDate" required type="datetime-local"
+                       [min]="!isEditing() ? todayLocalString() : null"
+                       [ngClass]="{'border-red-500 ring-red-500/10': form.startDate && !isEditing() && isDateInPast(form.startDate)}"
+                       class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
+                @if (form.startDate && !isEditing() && isDateInPast(form.startDate)) {
+                  <p class="text-[10px] text-red-500 font-bold px-1">Start date cannot be in the past.</p>
+                }
+              </div>
+              <div class="space-y-1.5">
+                <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                  End Date (Deadline) *
+                </label>
+                <input [(ngModel)]="form.deadline" name="deadline" required type="datetime-local"
+                       [min]="form.startDate || (!isEditing() ? todayLocalString() : null)"
+                       [ngClass]="{'border-red-500 ring-red-500/10': !isDeadlineValid()}"
+                       class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
+                @if (form.deadline && form.startDate && form.deadline <= form.startDate) {
+                  <p class="text-[10px] text-red-500 font-bold px-1">Deadline must be after start date.</p>
+                } @else if (form.deadline && !isEditing() && isDateInPast(form.deadline)) {
+                  <p class="text-[10px] text-red-500 font-bold px-1">Deadline cannot be in the past.</p>
+                }
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Prize *</label>
                 <input [(ngModel)]="form.prize" name="prize" required placeholder="e.g. $5,000 + Scholarship"
                        class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
               </div>
-              <div class="space-y-1.5">
-                <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                  Start Date &amp; Time
-                </label>
-                <input [(ngModel)]="form.startDate" name="startDate" type="datetime-local"
-                       class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
-              </div>
-            </div>
-            <div class="space-y-1.5">
-              <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">
-                End Date (Deadline) *
-              </label>
-              <input [(ngModel)]="form.deadline" name="deadline" required type="datetime-local"
-                     [ngClass]="{'border-red-500 ring-red-500/10': !isDeadlineValid()}"
-                     class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
-              @if (form.deadline && form.startDate && form.deadline <= form.startDate) {
-                <p class="text-[10px] text-red-500 font-bold px-1">Deadline must be after start date.</p>
-              } @else if (form.deadline && !isEditing() && isDateInPast(form.deadline)) {
-                <p class="text-[10px] text-red-500 font-bold px-1">Deadline cannot be in the past.</p>
-              }
-            </div>
-            <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1.5">
                 <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Max Participants</label>
                 <input [(ngModel)]="form.maxParticipants" name="maxParticipants" type="number" placeholder="50"
@@ -508,12 +539,12 @@ const EMPTY_COMP = (): Omit<Competition, 'id'> => ({
                   <p class="text-[10px] text-red-500 font-bold px-1">Minimum 1 participant.</p>
                 }
               </div>
-              <div class="space-y-1.5">
-                <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Tags (comma-sep)</label>
-                <input [ngModel]="(form.tags||[]).join(', ')" (ngModelChange)="onTagsChange($event)" name="tags"
-                       placeholder="speaking, fluency"
-                       class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
-              </div>
+            </div>
+            <div class="space-y-1.5">
+              <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Tags</label>
+              <input [(ngModel)]="tagsInputString" name="tags"
+                     placeholder="speaking, fluency"
+                     class="w-full px-4 py-3 rounded-2xl border border-border bg-muted/30 font-medium focus:ring-2 focus:ring-teal-600/20 outline-none">
             </div>
             <div class="space-y-1.5">
               <label class="text-xs font-black uppercase tracking-widest text-muted-foreground">Image URL</label>
@@ -576,6 +607,7 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
   newParticipantPhone = '';
   newParticipantMotivation = '';
   rulesText = '';
+  tagsInputString = '';
   form: Omit<Competition, 'id'> = EMPTY_COMP();
 
   // News Feed
@@ -669,18 +701,23 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
   }
 
   // ── CRUD ──
-  openCreate() { this.form = EMPTY_COMP(); this.isEditing.set(false); this.editId.set(null); this.showModal.set(true); }
+  openCreate() { this.form = EMPTY_COMP(); this.tagsInputString = ''; this.isEditing.set(false); this.editId.set(null); this.showModal.set(true); }
   openEdit(comp: Competition) {
     const { id, ...rest } = comp;
     this.form = { ...rest, tags: [...(rest.tags??[])], participants: [...(rest.participants??[])], rounds: [...(rest.rounds??[])] };
+    this.tagsInputString = (this.form.tags || []).join(', ');
     this.editId.set(id); this.isEditing.set(true); this.showModal.set(true);
   }
   closeModal() { this.showModal.set(false); }
-  onTagsChange(value: string) { this.form.tags = value.split(',').map(t => t.trim()).filter(Boolean); }
 
   isDateInPast(iso: string) {
     if (!iso) return false;
     return new Date(iso).getTime() < Date.now();
+  }
+
+  todayLocalString() {
+    const tzOffset = (new Date()).getTimezoneOffset() * 60000;
+    return new Date(Date.now() - tzOffset).toISOString().slice(0, 16);
   }
 
   isDeadlineValid() {
@@ -694,11 +731,14 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
     return this.form.title && this.form.title.length >= 5 &&
            this.form.description && this.form.description.length >= 20 &&
            this.form.prize &&
+           this.form.startDate &&
+           (this.isEditing() || !this.isDateInPast(this.form.startDate)) &&
            this.isDeadlineValid() &&
            (!this.form.maxParticipants || this.form.maxParticipants >= 1);
   }
 
   save() {
+    this.form.tags = this.tagsInputString.split(',').map(t => t.trim()).filter(Boolean);
     if (!this.isFormValid()) return;
     if (!this.form.slug)
       this.form.slug = this.form.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
@@ -783,7 +823,22 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
     const updated = { ...this.selected()!, rounds };
     this.data.updateCompetition(updated); this.selected.set(updated);
   }
-  saveRounds() { if (this.selected()) this.data.updateCompetition({ ...this.selected()! }); }
+  validateAndSaveRounds() {
+    if (!this.selected()) return;
+    let hasInvalid = false;
+    this.selected()!.rounds?.forEach(r => {
+      if (r.status === 'pending') {
+        if (this.isDateInPast(r.startDate)) { r.startDate = ''; hasInvalid = true; }
+        if (this.isDateInPast(r.endDate)) { r.endDate = ''; hasInvalid = true; }
+      }
+      if (r.startDate && r.endDate && r.startDate >= r.endDate) {
+        r.endDate = ''; hasInvalid = true;
+      }
+    });
+    if (!hasInvalid) {
+      this.data.updateCompetition({ ...this.selected()! });
+    }
+  }
   saveRules() {
     if (!this.selected()) return;
     const updated = { ...this.selected()!, rules: this.rulesText };

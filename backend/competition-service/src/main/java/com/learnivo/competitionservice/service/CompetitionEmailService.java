@@ -63,6 +63,44 @@ public class CompetitionEmailService {
     }
 
     private String buildConfirmationEmail(Competition competition, Participant participant) {
+        String countdownMsg = "";
+        String dateToUse = null;
+        String eventLabel = "";
+
+        // Prioritize deadline since it is the most critical date for registrants
+        if (competition.getDeadline() != null && !competition.getDeadline().isBlank()) {
+            dateToUse = competition.getDeadline();
+            eventLabel = "the deadline";
+        } else if (competition.getStartDate() != null && !competition.getStartDate().isBlank()) {
+            dateToUse = competition.getStartDate();
+            eventLabel = "the competition starts";
+        }
+
+        if (dateToUse != null) {
+            try {
+                java.time.LocalDateTime dateObj;
+                if (dateToUse.endsWith("Z") || dateToUse.contains("+")) {
+                    dateObj = java.time.ZonedDateTime.parse(dateToUse).toLocalDateTime();
+                } else {
+                    dateObj = java.time.LocalDateTime.parse(dateToUse);
+                }
+                
+                // Compare dates without time to get exact calendar days remaining
+                long days = java.time.temporal.ChronoUnit.DAYS.between(
+                        java.time.LocalDate.now(), 
+                        dateObj.toLocalDate()
+                );
+                
+                if (days > 0) {
+                    countdownMsg = "<div style=\"background:#e0e7ff;border:1px solid #a5b4fc;border-radius:12px;padding:16px;margin:20px 0;text-align:center;\"><p style=\"margin:0;font-weight:700;color:#4338ca;\">⏳ Reminder: Only " + days + " days left until " + eventLabel + "!</p></div>";
+                } else if (days == 0) {
+                    countdownMsg = "<div style=\"background:#ef4444;border:1px solid #fca5a5;border-radius:12px;padding:16px;margin:20px 0;text-align:center;\"><p style=\"margin:0;font-weight:700;color:#991b1b;\">🚨 The deadline is TODAY! Best of luck!</p></div>";
+                }
+            } catch (Exception e) {
+                log.warn("[EMAIL] Could not parse date for countdown: {}", e.getMessage());
+            }
+        }
+
         return """
             <!DOCTYPE html>
             <html>
@@ -95,6 +133,8 @@ public class CompetitionEmailService {
                     <p style="margin:0;font-weight:700;color:#92400e;">📌 Keep this email as proof of registration</p>
                   </div>
 
+                  %s
+
                   <p style="color:#6b7280;font-size:14px;">We'll send you a reminder as the deadline approaches. Give it your best! 🚀</p>
                 </div>
 
@@ -111,7 +151,8 @@ public class CompetitionEmailService {
                 competition.getCategory(),
                 competition.getPrize(),
                 competition.getDeadline(),
-                participant.getEmail()
+                participant.getEmail(),
+                countdownMsg
         );
     }
 
