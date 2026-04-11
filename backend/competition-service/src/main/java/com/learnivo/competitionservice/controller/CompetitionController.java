@@ -75,10 +75,17 @@ public class CompetitionController {
                                     @Valid @RequestBody SubmissionDTO dto) {
         try {
             Participant participant = competitionService.submit(
-                    id, dto.getEmail(), dto.getSubmissionUrl(), dto.getSubmissionNotes());
+                    id, dto.getEmail(), dto.getSubmissionUrl(), dto.getSubmissionNotes(), dto.getScore(), dto.getErrorsCount());
             return ResponseEntity.ok(participant);
         } catch (IllegalStateException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    // ── Recommandations ────────────────────────────────────────────────────────
+    
+    @GetMapping("/recommendations")
+    public List<Competition> getRecommendations(@RequestParam String email) {
+        return competitionService.getRecommendations(email);
     }
 }

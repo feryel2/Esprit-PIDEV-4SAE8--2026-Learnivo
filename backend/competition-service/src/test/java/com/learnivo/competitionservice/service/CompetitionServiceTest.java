@@ -203,7 +203,7 @@ class CompetitionServiceTest {
         when(competitionRepository.save(any())).thenReturn(sampleCompetition);
 
         Participant result = competitionService.submit(1L, "alice@example.com",
-                "https://github.com/alice/project", "My awesome project");
+                "https://github.com/alice/project", "My awesome project", null);
 
         assertThat(result.getSubmissionUrl()).isEqualTo("https://github.com/alice/project");
         assertThat(result.getSubmissionNotes()).isEqualTo("My awesome project");
@@ -216,7 +216,7 @@ class CompetitionServiceTest {
         sampleCompetition.setStatus(Competition.Status.COMPLETED);
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
 
-        assertThatThrownBy(() -> competitionService.submit(1L, "alice@example.com", "https://github.com", null))
+        assertThatThrownBy(() -> competitionService.submit(1L, "alice@example.com", "https://github.com", null, null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("closed");
     }
@@ -226,7 +226,7 @@ class CompetitionServiceTest {
     void submit_throwsWhenEmailNotRegistered() {
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
 
-        assertThatThrownBy(() -> competitionService.submit(1L, "unknown@example.com", "https://github.com", null))
+        assertThatThrownBy(() -> competitionService.submit(1L, "unknown@example.com", "https://github.com", null, null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("No registration");
     }

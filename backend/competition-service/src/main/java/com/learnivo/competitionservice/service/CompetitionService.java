@@ -153,7 +153,7 @@ public class CompetitionService {
 
     // ── Soumission de projet ───────────────────────────────────────────────────
 
-    public Participant submit(Long competitionId, String email, String submissionUrl, String submissionNotes) {
+    public Participant submit(Long competitionId, String email, String submissionUrl, String submissionNotes, Integer score, Integer errorsCount) {
         Competition comp = findById(competitionId);
 
         if (comp.getStatus() == Competition.Status.COMPLETED)
@@ -180,11 +180,72 @@ public class CompetitionService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No registration found for this email."));
 
-        participant.setSubmissionUrl(submissionUrl);
+        participant.setSubmissionUrl(submissionUrl != null ? submissionUrl : "task-based-submission");
         participant.setSubmissionNotes(submissionNotes);
         participant.setSubmittedAt(LocalDateTime.now().toString());
+        if (score != null) {
+            participant.setScore(score);
+        }
+        if (errorsCount != null) {
+            participant.setErrorsCount(errorsCount);
+        }
 
         competitionRepository.save(comp);
         return participant;
     }
+
+    // ── Recommandations ────────────────────────────────────────────────────────
+    
+    public List<Competition> getRecommendations(String email) {
+        List<Competition> history = competitionRepository.findByParticipantEmailString(email);
+        
+        long totalScore = 0;
+        long totalErrors = 0;
+        int participationCount = 0;
+        java.util.Set<String> pastCategories = new java.util.HashSet<>();
+        
+        for (Competition c : history) {
+            for (Participant p : c.getParticipants()) {
+                if (p.getEmail().equalsIgnoreCase(email)) {
+                    participationCount++;
+                    if (p.getScore() != null) totalScore += p.getScore();
+                    if (p.getErrorsCount() != null) totalErrors += p.getErrorsCount();
+                    if (c.getCategory() != null) pastCategories.add(c.getCategory());
+                }
+            }
+        }
+        
+        // Niveau = (Average Score) - (Errors * Penalty)
+        double averageScore = participationCount > 0 ? (double) totalScore / participationCount : 0;
+        double niveau = averageScore - (totalErrors * 2); // Simple heuristic
+        
+        List<Competition> activeComps = competitionRepository.findAll().stream()
+                .filter(c -> c.getStatus() == Competition.Status.UPCOMING || c.getStatus() == Competition.Status.ONGOING)
+                .filter(c -> c.getParticipants().stream().noneMatch(p -> p.getEmail().equalsIgnoreCase(email))) // exclude already registered
+                .collect(java.util.stream.Collectors.toList());
+                
+        // Rank active competitions
+        activeComps.sort((c1, c2) -> {
+            int score1 = 0;
+            int score2 = 0;
+            
+            // Boost if matches user's past categories
+            if (pastCategories.contains(c1.getCategory())) score1 += 50;
+            if (pastCategories.contains(c2.getCategory())) score2 += 50;
+            
+            // If high level, recommend competitions with certain keywords or just rely on matches
+            if (niveau > 20) {
+                if (c1.getTitle().toLowerCase().contains("advanced") || c1.getTitle().toLowerCase().contains("master")) score1 += 20;
+                if (c2.getTitle().toLowerCase().contains("advanced") || c2.getTitle().toLowerCase().contains("master")) score2 += 20;
+            } else {
+                if (c1.getTitle().toLowerCase().contains("beginner") || c1.getTitle().toLowerCase().contains("intro")) score1 += 20;
+                if (c2.getTitle().toLowerCase().contains("beginner") || c2.getTitle().toLowerCase().contains("intro")) score2 += 20;
+            }
+            
+            return Integer.compare(score2, score1);
+        });
+        
+        return activeComps.stream().limit(3).collect(java.util.stream.Collectors.toList());
+    }
+
 }

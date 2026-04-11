@@ -96,6 +96,71 @@ type ModalStep = 'form' | 'confirm' | 'success';
                 <p class="text-muted-foreground leading-relaxed text-lg italic border-l-4 border-teal-600 pl-6">"{{ comp()!.description }}"</p>
               </div>
 
+              <!-- ── POST-COMPETITION REVIEW (registered participants only) ── -->
+              @if (alreadyRegistered() && comp()!.status === 'completed') {
+                <div class="bg-white rounded-3xl border border-border p-8 shadow-lg space-y-6">
+
+                  <!-- Header -->
+                  <div class="flex items-center justify-between border-b border-border pb-5">
+                    <div>
+                      <h2 class="text-2xl font-extrabold flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-xl">&#128202;</span>
+                        Your Performance Review
+                      </h2>
+                      <p class="text-muted-foreground text-sm mt-1">
+                        Competition ended — see the questions and correct answers to understand your level.
+                        Results feed your <strong class="text-teal-600">AI Recommendations</strong>.
+                      </p>
+                    </div>
+                    <span class="px-3 py-1 bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-widest rounded-full shrink-0">
+                      {{ comp()!.category }}
+                    </span>
+                  </div>
+
+                  <!-- Questions & Answers -->
+                  <div class="space-y-4">
+                    <h4 class="font-extrabold text-base">&#128221; Questions &amp; Correct Answers</h4>
+                    @for (r of getCategoryReview(); track r.question; let i = $index) {
+                      <div class="p-5 rounded-2xl border-2 border-border bg-muted/10">
+                        <div class="flex items-start gap-3">
+                          <span class="w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center text-xs font-black text-white shrink-0 mt-0.5">
+                            {{ i + 1 }}
+                          </span>
+                          <div class="flex-1">
+                            <p class="font-bold text-sm mb-3">{{ r.question }}</p>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                              <div class="flex items-center gap-2 p-3 rounded-xl text-sm font-bold bg-teal-600 text-white flex-1">
+                                <span>&#10003;</span>
+                                <div>
+                                  <p class="text-[9px] uppercase tracking-widest opacity-70 font-black">Correct Answer</p>
+                                  <p>{{ r.correctAnswer }}</p>
+                                </div>
+                              </div>
+                            </div>
+                            @if (r.explanation) {
+                              <p class="mt-2 text-xs text-muted-foreground italic border-l-2 border-teal-400 pl-3">{{ r.explanation }}</p>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- CTA -->
+                  <div class="rounded-2xl p-6 text-center" style="background:linear-gradient(135deg,#f0fdfa,#e6fffa);border:1px solid #99f6e4">
+                    <p class="font-black text-teal-700 text-base mb-2">&#129514; Your learning profile has been updated!</p>
+                    <p class="text-sm text-teal-600 mb-4">The AI has recalculated your personalized recommendations based on this competition.</p>
+                    <a routerLink="/competitions"
+                       [queryParams]="{tab: 'recommended', email: regEmail}"
+                       class="inline-flex items-center gap-2 px-8 py-3 rounded-2xl font-black text-sm text-white transition-all active:scale-95"
+                       style="background:#0d9488">
+                      View My Recommendations &#8594;
+                    </a>
+                  </div>
+
+                </div>
+              }
+
               <!-- ── VOTE SECTION ──────────────────────────────────────────── -->
               <div class="bg-white rounded-3xl border border-border p-8 shadow-sm space-y-5">
                 <h2 class="text-2xl font-extrabold flex items-center gap-3">
@@ -640,6 +705,7 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
   isSubmitting = signal(false);
   submitUrl = '';
   submitNotes = '';
+  postCompetitionReview = computed(() => this.getCategoryReview());
 
   mySubmission = computed(() => {
     const comp = this.comp();
@@ -758,7 +824,7 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
 
     this.isSubmitting.set(true);
     this.submitError.set(null);
-    this.dataService.submitProject(comp.id, email, this.submitUrl.trim(), this.submitNotes).subscribe(res => {
+    this.dataService.submitProject(comp.id, email, this.submitUrl.trim(), this.submitNotes).subscribe((res: any) => {
       this.isSubmitting.set(false);
       if (res) {
         this.submitSuccess.set(true);
@@ -889,5 +955,65 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
     this.alreadyRegistered.set(true);
     this.step.set('success');
     this.formError.set(null);
+  }
+
+  getCategoryReview(): { question: string; correctAnswer: string; explanation: string }[] {
+    const comp = this.comp();
+    if (!comp) return [];
+    const cat = (comp.category ?? '').toLowerCase();
+    if (cat.includes('coding') || cat.includes('programming') || cat.includes('hackathon')) {
+      return [
+        { question: 'Time complexity of binary search?', correctAnswer: 'O(log n)', explanation: 'Binary search halves the search space each step.' },
+        { question: 'Which data structure uses FIFO?', correctAnswer: 'Queue', explanation: 'Queues process elements First-In-First-Out.' },
+        { question: 'What does SQL stand for?', correctAnswer: 'Structured Query Language', explanation: 'Standard language for relational databases.' },
+        { question: 'What does OOP stand for?', correctAnswer: 'Object-Oriented Programming', explanation: 'Organises code around objects with properties and methods.' },
+      ];
+    }
+    if (cat.includes('science') || cat.includes('physics') || cat.includes('chemistry') || cat.includes('biology')) {
+      return [
+        { question: 'Newton Third Law?', correctAnswer: 'Every action has an equal and opposite reaction', explanation: 'Forces always occur in pairs.' },
+        { question: 'Chemical symbol for water?', correctAnswer: 'H2O', explanation: '2 hydrogen atoms bonded to 1 oxygen atom.' },
+        { question: 'Powerhouse of the cell?', correctAnswer: 'Mitochondria', explanation: 'Mitochondria produce ATP through cellular respiration.' },
+        { question: 'Speed of light?', correctAnswer: '300,000 km/s', explanation: 'Light travels approximately 299,792 km/s in a vacuum.' },
+      ];
+    }
+    if (cat.includes('math')) {
+      return [
+        { question: 'Value of pi?', correctAnswer: 'Approximately 3.14159', explanation: 'Ratio of circumference to diameter.' },
+        { question: '5 factorial?', correctAnswer: '120', explanation: '5 x 4 x 3 x 2 x 1 = 120.' },
+        { question: 'Pythagorean theorem?', correctAnswer: 'a2 + b2 = c2', explanation: 'c is the hypotenuse of a right-angled triangle.' },
+        { question: 'What is a prime number?', correctAnswer: 'Divisible only by 1 and itself', explanation: 'Examples: 2, 3, 5, 7, 11.' },
+      ];
+    }
+    if (cat.includes('art')) {
+      return [
+        { question: 'Movement with bold colors and fragmented forms?', correctAnswer: 'Cubism', explanation: 'Pioneered by Picasso and Braque.' },
+        { question: 'Who painted the Mona Lisa?', correctAnswer: 'Leonardo da Vinci', explanation: 'Painted 1503-1519, now in the Louvre.' },
+        { question: 'Three primary colors in art?', correctAnswer: 'Red, Yellow, Blue', explanation: 'Cannot be mixed from other colors.' },
+        { question: 'What is chiaroscuro?', correctAnswer: 'Strong light and dark contrast in artwork', explanation: 'Used by Caravaggio to create depth.' },
+      ];
+    }
+    if (cat.includes('music')) {
+      return [
+        { question: 'Sharps in A major?', correctAnswer: '3 sharps: F#, C#, G#', explanation: 'A major has three sharps.' },
+        { question: 'What does Allegro mean?', correctAnswer: 'Fast and lively', explanation: 'Typically 120-156 beats per minute.' },
+        { question: 'Lines on a music staff?', correctAnswer: '5 lines', explanation: 'Notes placed on or between the five horizontal lines.' },
+        { question: 'Who composed Moonlight Sonata?', correctAnswer: 'Ludwig van Beethoven', explanation: 'Composed in 1801, Op. 27.' },
+      ];
+    }
+    if (cat.includes('language') || cat.includes('english') || cat.includes('french')) {
+      return [
+        { question: 'Past tense of "to run"?', correctAnswer: 'Ran', explanation: '"Run" is an irregular verb.' },
+        { question: 'What is a synonym?', correctAnswer: 'A word with a similar meaning', explanation: 'Example: happy and joyful.' },
+        { question: 'Goal of persuasive writing?', correctAnswer: 'To convince the reader', explanation: 'Uses evidence and rhetoric to influence beliefs.' },
+        { question: 'What is an antonym?', correctAnswer: 'A word with the opposite meaning', explanation: 'Example: hot and cold.' },
+      ];
+    }
+    return [
+      { question: 'What is critical thinking?', correctAnswer: 'Objective analysis and evaluation of information', explanation: 'Reasoning based on evidence rather than assumption.' },
+      { question: 'What is teamwork?', correctAnswer: 'Collaborative effort to achieve a common goal', explanation: 'Requires communication, trust, and shared responsibility.' },
+      { question: 'What does innovation mean?', correctAnswer: 'Introducing a new idea, method, or product', explanation: 'Innovation drives progress across all fields.' },
+      { question: 'What is a competitive advantage?', correctAnswer: 'A condition giving an entity an edge over rivals', explanation: 'Can come from quality, cost, speed, or unique capabilities.' },
+    ];
   }
 }

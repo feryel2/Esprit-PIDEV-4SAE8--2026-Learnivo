@@ -20,4 +20,7 @@ public interface CompetitionRepository extends JpaRepository<Competition, Long> 
     @Query("SELECT DISTINCT c FROM Competition c JOIN c.participants p " +
            "WHERE c.status IN ('UPCOMING', 'ONGOING') AND c.deadline IS NOT NULL")
     List<Competition> findActiveWithParticipants();
+
+    @Query("SELECT DISTINCT c FROM Competition c JOIN c.participants p WHERE LOWER(p.email) = LOWER(:email)")
+    List<Competition> findByParticipantEmailString(@org.springframework.data.repository.query.Param("email") String email);
 }

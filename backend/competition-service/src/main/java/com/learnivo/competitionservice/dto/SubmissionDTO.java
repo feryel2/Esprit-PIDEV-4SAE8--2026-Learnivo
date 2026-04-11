@@ -11,9 +11,11 @@ public class SubmissionDTO {
     @Email(message = "Invalid email format")
     private String email;
 
-    @NotBlank(message = "Submission URL is required")
-    @Pattern(regexp = "^(http|https)://.*", message = "Submission URL must be a valid link")
     private String submissionUrl;
 
     private String submissionNotes;
+
+    private Integer score;
+
+    private Integer errorsCount;
 }

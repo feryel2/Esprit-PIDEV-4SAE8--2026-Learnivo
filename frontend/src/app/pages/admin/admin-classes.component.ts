@@ -199,7 +199,7 @@ const MAT_TYPES: ClassMaterial['type'][] = ['pdf', 'slide', 'video', 'link'];
                       <div class="flex flex-wrap gap-2">
                         @for (s of (selected()!.enrolled || []); track s.id) {
                           <button (click)="toggleAttendee(record, s.id)"
-                                  [ngClass]="record.attendees.includes(s.id) ? 'bg-teal-600 text-white' : 'bg-muted text-muted-foreground'"
+                                  [ngClass]="record.attendees.includes($any(s.id)) ? 'bg-teal-600 text-white' : 'bg-muted text-muted-foreground'"
                                   class="px-3 py-1.5 rounded-full text-[10px] font-bold transition-all hover:opacity-80">
                             {{ s.name.split(' ')[0] }}
                           </button>

@@ -25,6 +25,9 @@ public class Participant {
     private String registeredAt;
     private Integer score;
 
+    @Builder.Default
+    private Integer errorsCount = 0;
+
     @Column(columnDefinition = "TEXT")
     private String submissionUrl;
 
