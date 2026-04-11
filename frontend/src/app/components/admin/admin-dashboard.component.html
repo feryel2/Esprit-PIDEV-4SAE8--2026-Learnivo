@@ -1,0 +1,51 @@
+<div class="container mx-auto p-6">
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="text-2xl font-semibold">Admin Dashboard</h2>
+    <a routerLink="/admin/users" class="inline-block bg-blue-600 text-white px-4 py-2 rounded shadow">Manage users</a>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    <div class="bg-white shadow rounded p-4">
+      <div class="text-sm text-gray-500">Total users</div>
+      <div class="text-2xl font-bold">{{ totalUsers }}</div>
+    </div>
+
+    <div class="bg-white shadow rounded p-4">
+      <div class="text-sm text-gray-500">Active users</div>
+      <div class="text-2xl font-bold">{{ activeUsers }}</div>
+    </div>
+
+    <div class="bg-white shadow rounded p-4">
+      <div class="text-sm text-gray-500">Courses</div>
+      <div class="text-2xl font-bold">{{ coursesCount }}</div>
+    </div>
+  </div>
+
+  <div class="bg-white shadow rounded p-4">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="text-lg font-medium">Recent users</h3>
+      <a routerLink="/admin/users" class="text-sm text-blue-600">View all</a>
+    </div>
+
+    <div *ngIf="recentUsers.length === 0" class="text-sm text-gray-500">No users yet</div>
+
+    <table *ngIf="recentUsers.length > 0" class="min-w-full divide-y divide-gray-200">
+      <thead class="bg-gray-50">
+        <tr>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">ID</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Email</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Role</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">Status</th>
+        </tr>
+      </thead>
+      <tbody class="bg-white divide-y divide-gray-100">
+        <tr *ngFor="let u of recentUsers">
+          <td class="px-4 py-2 text-sm text-gray-700">{{ u.id }}</td>
+          <td class="px-4 py-2 text-sm text-gray-700">{{ u.email }}</td>
+          <td class="px-4 py-2 text-sm text-gray-700">{{ u.role }}</td>
+          <td class="px-4 py-2 text-sm text-gray-700">{{ u.status }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

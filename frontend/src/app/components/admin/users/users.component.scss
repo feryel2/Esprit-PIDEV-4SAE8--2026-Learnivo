@@ -1,0 +1,77 @@
+/* Minimal fallback styles if Tailwind isn't loaded */
+.users-root {
+    padding: 1rem;
+}
+
+.users-root .users-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.users-root .users-table th,
+.users-root .users-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: left;
+}
+
+.users-root .users-table th {
+    background: #f8fafc;
+}
+
+.users-root .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.users-root .form-panel {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    max-width: 600px;
+}
+
+.users-root .form-panel label {
+    display: block;
+    margin-top: 0.5rem;
+}
+
+.users-root .form-panel input,
+.users-root .form-panel select {
+    width: 100%;
+    padding: 0.5rem;
+    margin-top: 0.25rem;
+}
+
+.users-root .form-actions {
+    margin-top: 1rem;
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Modal Dialog Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    width: 100%;
+    max-width: 600px;
+    position: relative;
+}

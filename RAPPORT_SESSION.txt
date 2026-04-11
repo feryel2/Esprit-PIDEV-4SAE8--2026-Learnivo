@@ -1,0 +1,278 @@
+================================================================================
+                    RAPPORT DE SESSION — PLATEFORME LEARNIVO
+                         Backend Spring Boot + Frontend Angular
+================================================================================
+Date : Session de travail (nuit)
+Projet : Learnivo-main (demo/ = backend, lite-version/ = frontend Angular)
+
+================================================================================
+1. VUE D'ENSEMBLE
+================================================================================
+
+Ce qui a été réalisé :
+- Backend Spring Boot 3.x (Java 17) avec authentification JWT, gestion des
+  utilisateurs (CRUD Admin) et module Support / Réclamations (tickets + messages).
+- Frontend Angular avec services, guards, interceptor JWT, pages Login/Register,
+  gestion utilisateurs (admin) et tickets.
+- Corrections : SecurityConfig (constructeur explicite), port serveur (8081),
+  documentation Postman et scripts de test.
+
+================================================================================
+2. ARCHITECTURE BACKEND (LOGIQUE)
+================================================================================
+
+Principe : Controller → Service → Repository → Entity. DTOs pour les entrées/sorties.
+Jamais d’exposition du password_hash dans les réponses.
+
+--- 2.1 AUTHENTIFICATION ---
+
+- JwtService : génération et validation des tokens JWT (secret + expiration).
+- JwtAuthFilter (OncePerRequestFilter) : lit le header "Authorization: Bearer <token>",
+  valide le token, charge l’User depuis UserRepository et met l’authentification
+  dans SecurityContext. Les requêtes sans token passent quand même (pour /api/auth/**).
+- UserDetailsServiceImpl : implémente UserDetailsService, charge un User par email
+  et le transforme en UserDetails Spring (username = email, password, authorities = role).
+- AuthService :
+  - register(RegisterRequest) : vérifie email unique, accepte uniquement STUDENT et
+    SOCIETY_AGENT, hash BCrypt du mot de passe, création User + Profile, retourne
+    JWT + infos user.
+  - login(LoginRequest) : authentification via AuthenticationManager, mise à jour
+    lastLogin, retourne JWT + infos user.
+  - getCurrentUser(User) : construit MeResponse (user + profil) sans exposer le hash.
+- SecurityUtil : récupère l’User courant depuis SecurityContext (pour les controllers).
+
+--- 2.2 GESTION DES UTILISATEURS (USER MANAGEMENT) ---
+
+- UserService : CRUD sur User + Profile.
+  - createUser(UserCreateDTO) : email unique, hash BCrypt, création Profile si besoin,
+    champs société pour SOCIETY_AGENT.
+  - updateUser(id, UserUpdateDTO) : mise à jour email/role/status/profil/société,
+    re-hash du mot de passe si fourni.
+  - deleteUser(id) : soft delete (status = SUSPENDED).
+  - getAllUsers(Pageable), getUserById(id) : retournent UserResponseDTO (sans password).
+- Contrôle d’accès : @PreAuthorize("hasAuthority('ADMIN')") sur UserController.
+
+--- 2.3 SUPPORT / RÉCLAMATIONS (TICKETS) ---
+
+- TicketService :
+  - createTicket : réservé aux STUDENT.
+  - getAllTickets : ADMIN et PROFESSOR voient tous les tickets, STUDENT uniquement les siens.
+  - getTicketById, getTicketMessages : même règle (Student = ses tickets uniquement).
+  - updateTicket (status/priority) : ADMIN et PROFESSOR uniquement ; si status = CLOSED,
+    closedAt est renseigné.
+  - addMessage : Student sur ses tickets, Admin/Professor sur tous.
+- Entités : SupportTicket (sujet, description, status, priority, createdBy, category,
+  createdAt, closedAt), TicketMessage (content, sender, ticket, sentAt), TicketCategory.
+
+--- 2.4 GESTION D’ERREURS ET SÉCURITÉ ---
+
+- GlobalExceptionHandler (@RestControllerAdvice) : Runtime, MethodArgumentNotValidException
+  (validation), AccessDeniedException, BadCredentialsException, Exception générique.
+- SecurityConfig : session stateless, CORS (origine localhost:4200), CSRF désactivé,
+  /api/auth/** en permitAll, /api/users/** réservé ADMIN, le reste authentifié.
+  Constructeur explicite pour UserDetailsService et JwtAuthFilter (éviter problème Lombok).
+
+================================================================================
+3. ROUTES API (BACKEND) — BASE URL : http://localhost:8081
+================================================================================
+
+--- 3.1 AUTH (publiques, pas de token) ---
+
+  POST   /api/auth/register
+    Body : RegisterRequest (email, password, role=STUDENT|SOCIETY_AGENT[, societyName, ...])
+    Réponse : AuthResponse (token, userId, email, role)
+    Logique : inscription, hash BCrypt, création User + Profile.
+
+  POST   /api/auth/login
+    Body : LoginRequest (email, password)
+    Réponse : AuthResponse (token, userId, email, role)
+    Logique : authentification, mise à jour lastLogin, génération JWT.
+
+  GET    /api/auth/me
+    Header : Authorization: Bearer <token>
+    Réponse : MeResponse (id, email, role, status, createdAt, lastLogin, profil, société)
+    Logique : utilisateur courant depuis SecurityContext.
+
+--- 3.2 USERS (Admin uniquement) ---
+
+  GET    /api/users?page=0&size=20
+    Réponse : Page<UserResponseDTO>
+    Logique : liste paginée de tous les utilisateurs (sans password).
+
+  GET    /api/users/{id}
+    Réponse : UserResponseDTO
+    Logique : détail d’un utilisateur par id.
+
+  POST   /api/users
+    Body : UserCreateDTO (email, password, role[, firstName, lastName, phone, address,
+           societyName, societyEmail, societyPhone, societyAddress])
+    Réponse : UserResponseDTO
+    Logique : création user (tous rôles), hash BCrypt, création profil.
+
+  PUT    /api/users/{id}
+    Body : UserUpdateDTO (champs optionnels : email, password, role, status, profil, société)
+    Réponse : UserResponseDTO
+    Logique : mise à jour ; si password fourni, re-hash BCrypt.
+
+  DELETE /api/users/{id}
+    Réponse : 204 No Content
+    Logique : soft delete (status = SUSPENDED).
+
+--- 3.3 TICKETS (authentifié, règles par rôle) ---
+
+  POST   /api/tickets
+    Body : TicketCreateDTO (subject, description[, priority, categoryId])
+    Réponse : TicketResponseDTO
+    Logique : création réservée aux STUDENT.
+
+  GET    /api/tickets?page=0&size=20
+    Réponse : Page<TicketResponseDTO>
+    Logique : tous les tickets pour ADMIN/PROFESSOR, seulement les siens pour STUDENT.
+
+  GET    /api/tickets/{id}
+    Réponse : TicketResponseDTO
+    Logique : détail ; Student uniquement pour ses propres tickets.
+
+  PUT    /api/tickets/{id}
+    Body : TicketUpdateDTO (status, priority)
+    Réponse : TicketResponseDTO
+    Logique : mise à jour réservée à ADMIN et PROFESSOR.
+
+  POST   /api/tickets/{id}/messages
+    Body : MessageCreateDTO (content)
+    Réponse : MessageResponseDTO
+    Logique : ajout message ; Student sur ses tickets, Admin/Professor sur tous.
+
+  GET    /api/tickets/{id}/messages
+    Réponse : List<MessageResponseDTO>
+    Logique : liste des messages du ticket (même règle d’accès que le ticket).
+
+================================================================================
+4. ROUTES FRONTEND (ANGULAR)
+================================================================================
+
+Base URL app : http://localhost:4200
+
+--- 4.1 Publiques (sans AuthGuard) ---
+
+  /login
+    Composant : LoginComponent
+    Logique : formulaire email/password, appel AuthService.login(), stockage token
+              et user dans localStorage, redirection vers /dashboard.
+
+  /register
+    Composant : RegisterComponent
+    Logique : formulaire email, password, role (STUDENT | SOCIETY_AGENT), champs
+              société si SOCIETY_AGENT ; appel AuthService.register(), puis redirection.
+
+--- 4.2 Protégées (AuthGuard = connecté) ---
+
+  / (ou /dashboard/default)
+    Redirection par défaut après login.
+
+  /dashboard/*
+    Module dashboard existant (lazy).
+
+  /admin/users
+    Composant : UsersListComponent
+    Guard : RoleGuard (ADMIN uniquement)
+    Logique : liste paginée des utilisateurs, boutons Edit / Delete, lien Create.
+
+  /admin/users/new
+    Composant : UserFormComponent
+    Guard : RoleGuard
+    Logique : formulaire de création user (tous rôles, profil, société si SOCIETY_AGENT).
+
+  /admin/users/:id/edit
+    Composant : UserFormComponent
+    Guard : RoleGuard
+    Logique : formulaire d’édition (chargement user par id, mise à jour).
+
+  /tickets
+    Composant : TicketsListComponent
+    Logique : liste des tickets (tous pour Admin/Professor, les siens pour Student),
+              bouton "Create Ticket" pour Student.
+
+  /tickets/new
+    Composant : TicketCreateComponent
+    Logique : formulaire sujet, description, priorité ; création ticket (Student).
+
+  /tickets/:id
+    Composant : TicketDetailsComponent
+    Logique : détail ticket, liste des messages, formulaire nouveau message ;
+              bloc mise à jour status/priority pour Admin/Professor.
+
+  /layout, /basic, /forms, /tbl-bootstrap, /charts, /maps, /sample-page, /events
+    Modules existants (lazy).
+
+--- 4.3 Services / Guards / Interceptor ---
+
+  AuthService : login(), register(), me(), logout(), getToken(), isAuthenticated(),
+                getCurrentUser() (localStorage).
+  UserService : getAllUsers(page, size), getUserById(id), createUser(), updateUser(),
+                deleteUser().
+  TicketService : createTicket(), getAllTickets(), getTicketById(), updateTicket(),
+                  addMessage(), getTicketMessages().
+  JwtInterceptor : ajoute "Authorization: Bearer <token>" à chaque requête HTTP.
+  AuthGuard : redirige vers /login si non connecté.
+  RoleGuard : redirige si rôle !== ADMIN (pour /admin/users/*).
+
+================================================================================
+5. MODÈLE DE DONNÉES (ENTITÉS PRINCIPALES)
+================================================================================
+
+  User       : id, email, passwordHash, role, status, createdAt, lastLogin,
+               societyName, societyEmail, societyPhone, societyAddress.
+  Profile    : id, user (OneToOne), firstName, lastName, phone, address,
+               birthDate, photoUrl.
+  SupportTicket : id, subject, description, status, priority, createdBy (User),
+                  category (TicketCategory), createdAt, closedAt.
+  TicketMessage  : id, content, sender (User), ticket (SupportTicket), sentAt.
+  TicketCategory : id, name, description.
+
+  Rôles : ADMIN, STUDENT, PROFESSOR, SOCIETY_AGENT.
+  Statuts user : ACTIVE, SUSPENDED, INACTIVE.
+  Statuts ticket : OPEN, IN_PROGRESS, RESOLVED, CLOSED.
+  Priorités : LOW, MEDIUM, HIGH, URGENT.
+
+================================================================================
+6. CORRECTIFS APPLIQUÉS PENDANT LA SESSION
+================================================================================
+
+  - SecurityConfig : "variable userDetailsService not initialized in the default
+    constructor" → remplacement de @RequiredArgsConstructor par un constructeur
+    explicite (UserDetailsService, JwtAuthFilter).
+  - Port 8080 déjà utilisé → server.port=8081 dans application.properties ;
+    frontend à configurer avec apiUrl = http://localhost:8081 si besoin.
+  - Documentation : méthode d’ajout d’utilisateur avec Postman (register + login
+    Admin + POST /api/users avec Bearer token).
+
+================================================================================
+7. FICHIERS CLÉS (RÉFÉRENCE RAPIDE)
+================================================================================
+
+  Backend (demo/src/main/java/.../):
+    config/SecurityConfig.java
+    filter/JwtAuthFilter.java
+    controller/AuthController.java, UserController.java, TicketController.java
+    service/AuthService.java, UserService.java, TicketService.java, JwtService.java,
+            UserDetailsServiceImpl.java
+    repository/UserRepository.java, ProfileRepository.java, SupportTicketRepository.java,
+               TicketMessageRepository.java, TicketCategoryRepository.java
+    entity/User.java, Profile.java, SupportTicket.java, TicketMessage.java, TicketCategory.java
+    dto/auth/*, dto/user/*, dto/ticket/*
+    exception/GlobalExceptionHandler.java
+    util/SecurityUtil.java
+
+  Frontend (lite-version/src/app/):
+    services/auth.service.ts, user.service.ts, ticket.service.ts
+    guards/auth.guard.ts, role.guard.ts
+    interceptors/jwt.interceptor.ts
+    components/auth/login, auth/register, users/users-list, users/user-form,
+                tickets/tickets-list, tickets/ticket-details, tickets/ticket-create
+    app-routing.module.ts, app.module.ts
+    environments/environment.ts (apiUrl)
+
+================================================================================
+                              FIN DU RAPPORT
+================================================================================
