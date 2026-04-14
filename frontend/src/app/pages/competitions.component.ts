@@ -1,9 +1,10 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
+import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Trophy, Calendar, ArrowRight, Filter, ThumbsUp, ThumbsDown, BarChart3, Star, Dna, Zap, Brain, CheckCircle2, Target, Award, XCircle, CheckCircle, BookOpen, Flame } from 'lucide-angular';
+import { LucideAngularModule, Trophy, Calendar, ArrowRight, Filter, ThumbsUp, ThumbsDown, BarChart3, Star, Dna, Zap, Brain, CheckCircle2, Target, Award, XCircle, CheckCircle, BookOpen, Flame, Sparkles, Users } from 'lucide-angular';
 import { DataService, CompetitionRanking, Competition, RecommendationProfile, Exercise, ExerciseTask, Training } from '../services/data.service';
+import { AuthService } from '../services/auth.service';
 
 type Tab = 'all' | 'ranking' | 'recommended';
 
@@ -320,13 +321,13 @@ interface PracticeState {
               <lucide-icon [name]="BarChart3" [size]="16"></lucide-icon>
               Popularity Ranking
             </button>
-            <button (click)="activeTab.set('recommended')"
+            <button (click)="loadForYou()"
                     [ngClass]="activeTab() === 'recommended'
                       ? 'border-b-2 border-teal-600 text-teal-600'
                       : 'text-muted-foreground hover:text-foreground'"
                     class="flex items-center gap-2 px-5 py-3 font-bold text-sm transition-all -mb-px">
-              <lucide-icon [name]="Dna" [size]="16"></lucide-icon>
-              AI Recommended
+              <lucide-icon [name]="Sparkles" [size]="16"></lucide-icon>
+              For You
             </button>
           </div>
 
@@ -399,50 +400,103 @@ interface PracticeState {
           }
         }
 
-        <!-- ── INTELLIGENT RECOMMENDATIONS ────────────────────────────────── -->
+        <!-- ── FOR YOU ────────────────────────────────── -->
         @if (activeTab() === 'recommended') {
-          <div class="space-y-10">
+          <div class="space-y-8">
 
-            <!-- Email DNA Input -->
-            <div class="relative overflow-hidden rounded-[2rem] p-8 text-white" style="background:linear-gradient(135deg,#0d9488 0%,#0f766e 60%,#134e4a 100%)">
-              <div class="absolute -right-8 -top-8 w-40 h-40 rounded-full bg-white/5"></div>
-              <div class="absolute -right-4 top-16 w-24 h-24 rounded-full bg-white/5"></div>
-              <div class="absolute right-32 -bottom-6 w-32 h-32 rounded-full bg-teal-400/10"></div>
-              <div class="relative flex flex-col md:flex-row gap-8 items-center">
-                <div class="flex-1 space-y-2">
-                  <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 text-[10px] font-black uppercase tracking-widest mb-1">
-                    <lucide-icon [name]="Dna" [size]="14"></lucide-icon> Content DNA Engine v2
+            <!-- User banner -->
+            @if (currentUserEmail) {
+              <div class="flex items-center gap-5 p-6 rounded-3xl text-white" style="background:linear-gradient(135deg,#0d9488,#0f766e)">
+                <div class="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center text-2xl font-black shrink-0">
+                  {{ currentUserEmail.charAt(0).toUpperCase() }}
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="text-teal-200 text-[10px] font-black uppercase tracking-widest">Your Personalized Feed</p>
+                  <p class="font-black text-lg truncate mt-0.5">{{ currentUserEmail }}</p>
+                  @if (myCategories.length > 0) {
+                    <div class="flex flex-wrap gap-1.5 mt-2">
+                      @for (cat of myCategories; track cat) {
+                        <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-white/20">{{ cat }}</span>
+                      }
+                    </div>
+                  } @else {
+                    <p class="text-teal-200 text-xs mt-1">Join competitions to get personalised picks</p>
+                  }
+                </div>
+                <div class="text-right shrink-0">
+                  <p class="text-3xl font-black">{{ myParticipatedCount }}</p>
+                  <p class="text-teal-200 text-xs font-bold">Joined</p>
+                </div>
+              </div>
+            } @else {
+              <div class="py-16 text-center bg-white rounded-3xl border-2 border-dashed border-border space-y-3">
+                <p class="text-5xl">🔒</p>
+                <p class="font-black text-lg">Log in to see your personalised feed</p>
+                <a routerLink="/login" class="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-2xl font-bold text-sm">Log in</a>
+              </div>
+            }
+
+            @if (currentUserEmail) {
+              @if (recommendLoading()) {
+                <div class="py-20 text-center space-y-4">
+                  <div class="w-12 h-12 border-4 border-teal-600/20 border-t-teal-600 rounded-full animate-spin mx-auto"></div>
+                  <p class="text-muted-foreground font-bold">Finding competitions for you…</p>
+                </div>
+              } @else {
+                <div class="space-y-4">
+                  <div>
+                    <h3 class="text-xl font-black flex items-center gap-2">
+                      <lucide-icon [name]="Sparkles" [size]="20" class="text-teal-600"></lucide-icon>
+                      @if (forYouComps().length > 0) { Suggested for you } @else { Trending competitions }
+                    </h3>
+                    <p class="text-sm text-muted-foreground mt-0.5">
+                      @if (forYouComps().length > 0) { Matched to your competition history }
+                      @else { Most popular right now — join some to unlock personalised picks }
+                    </p>
                   </div>
-                  <h3 class="font-black text-3xl tracking-tight">Your Personalized Learning Roadmap</h3>
-                  <p class="text-teal-100 text-sm leading-relaxed">We analyze your <span class="font-black text-white">history, skill gaps, category behavior, and error patterns</span> to give you the right content at the right time.</p>
-                </div>
-                <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto shrink-0">
-                  <input type="email" [(ngModel)]="recommendEmail" placeholder="your.email@example.com"
-                         class="px-6 py-4 rounded-2xl bg-white text-foreground font-bold focus:ring-4 focus:ring-teal-300/30 outline-none w-full sm:w-80 transition-all shadow-xl">
-                  <button (click)="loadRecommendations()" [disabled]="!recommendEmail || recommendLoading()"
-                          class="px-8 py-4 bg-white text-teal-700 hover:bg-teal-50 disabled:opacity-50 rounded-2xl font-black transition-all active:scale-[0.97] flex items-center justify-center gap-2 shadow-xl whitespace-nowrap">
-                    @if (recommendLoading()) {
-                      <div class="w-5 h-5 border-2 border-teal-600/30 border-t-teal-600 rounded-full animate-spin"></div>
-                    } @else {
-                      <lucide-icon [name]="Dna" [size]="18"></lucide-icon>
-                      Analyze Profile
-                    }
-                  </button>
-                </div>
-              </div>
-            </div>
 
-            @if (recommendLoading()) {
-              <div class="py-24 text-center space-y-6">
-                <div class="relative w-24 h-24 mx-auto">
-                  <div class="absolute inset-0 border-4 border-teal-600/20 rounded-full"></div>
-                  <div class="absolute inset-0 border-4 border-teal-600 border-t-transparent rounded-full animate-spin"></div>
-                  <div class="absolute inset-4 border-4 border-orange-400/30 border-b-orange-400 rounded-full animate-spin" style="animation-direction:reverse;animation-duration:0.8s"></div>
+                  @if (displayedForYouComps().length === 0) {
+                    <div class="py-16 text-center bg-white rounded-3xl border-2 border-dashed border-border">
+                      <p class="text-muted-foreground font-medium">No open competitions right now. Check back soon!</p>
+                    </div>
+                  } @else {
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      @for (comp of displayedForYouComps(); track comp.id) {
+                        <div class="group flex flex-col bg-white rounded-3xl border border-border overflow-hidden hover:shadow-2xl hover:shadow-teal-600/10 transition-all duration-500 hover:-translate-y-1">
+                          <div class="relative aspect-[16/10] overflow-hidden">
+                            <img [src]="comp.image" [alt]="comp.title" class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700">
+                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
+                            <span [ngClass]="{ 'bg-teal-600': comp.status === 'ongoing', 'bg-orange-500': comp.status === 'upcoming', 'bg-muted-foreground': comp.status === 'completed' }"
+                                  class="absolute top-4 left-4 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{{ comp.status }}</span>
+                            @if (forYouComps().length > 0) {
+                              <span class="absolute top-4 right-4 bg-yellow-400 text-black px-2 py-0.5 rounded-full text-[10px] font-black">Match</span>
+                            } @else {
+                              <span class="absolute top-4 right-4 flex items-center gap-1 bg-white/25 text-white px-2 py-0.5 rounded-full text-[10px] font-black">
+                                <lucide-icon [name]="Users" [size]="10"></lucide-icon> {{ (comp.participants || []).length }}
+                              </span>
+                            }
+                          </div>
+                          <div class="p-5 flex flex-col flex-1">
+                            <span class="text-xs font-bold text-teal-600 mb-1">{{ comp.category }}</span>
+                            <h4 class="font-bold text-lg mb-2 line-clamp-2 group-hover:text-teal-600 transition-colors">{{ comp.title }}</h4>
+                            <div class="flex items-center gap-3 text-xs font-bold text-muted-foreground mb-4 mt-auto">
+                              <span class="flex items-center gap-1"><lucide-icon [name]="Trophy" [size]="12"></lucide-icon> {{ comp.prize }}</span>
+                              <span class="flex items-center gap-1"><lucide-icon [name]="Calendar" [size]="12"></lucide-icon> {{ comp.deadline | slice:0:10 }}</span>
+                            </div>
+                            <a [routerLink]="['/competitions', comp.slug]"
+                               class="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm transition-all">
+                              View Challenge <lucide-icon [name]="ArrowRight" [size]="15"></lucide-icon>
+                            </a>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
                 </div>
-                <p class="text-teal-600 font-black uppercase tracking-[0.2em] text-sm animate-pulse">Mapping Cognitive DNA Profile...</p>
-              </div>
+              }
+            }
 
-            } @else if (recommendProfile()) {
+            @if (false) {
               @let prof = recommendProfile()!;
 
               <!-- ── DNA STATS GRID ── -->
@@ -785,12 +839,6 @@ interface PracticeState {
                 </div>
               </div>
 
-            } @else if (hasSearchedRecommendations) {
-              <div class="py-24 text-center bg-white rounded-3xl border-2 border-dashed border-border space-y-4">
-                <div class="text-5xl mb-4">🧬</div>
-                <h3 class="text-xl font-black">No DNA Record Found</h3>
-                <p class="text-muted-foreground max-w-sm mx-auto text-sm">No performance history found for this email. Participate in a competition first to generate your personal learning profile!</p>
-              </div>
             }
           </div>
         }
@@ -874,6 +922,7 @@ interface PracticeState {
 })
 export class CompetitionsComponent implements OnInit {
     data = inject(DataService);
+    private auth = inject(AuthService);
 
     readonly Trophy = Trophy;
     readonly Calendar = Calendar;
@@ -893,6 +942,8 @@ export class CompetitionsComponent implements OnInit {
     readonly CheckCircle = CheckCircle;
     readonly BookOpen = BookOpen;
     readonly Flame = Flame;
+    readonly Sparkles = Sparkles;
+    readonly Users = Users;
 
     activeTab = signal<Tab>('all');
     ranking = signal<CompetitionRanking[]>([]);
@@ -903,6 +954,39 @@ export class CompetitionsComponent implements OnInit {
     recommendProfile = signal<RecommendationProfile | null>(null);
     recommendLoading = signal(false);
     hasSearchedRecommendations = false;
+
+    // For You tab
+    forYouComps = signal<Competition[]>([]);
+    displayedForYouComps = computed(() => {
+        const fromBackend = this.forYouComps();
+        if (fromBackend.length > 0) return fromBackend;
+        // Fallback: trending (most participants, non-completed)
+        return [...this.data.competitions()]
+            .filter(c => c.status !== 'completed')
+            .sort((a, b) => (b.participants?.length ?? 0) - (a.participants?.length ?? 0))
+            .slice(0, 6);
+    });
+
+    get currentUserEmail(): string {
+        return this.auth.getCurrentUser()?.email ?? '';
+    }
+
+    get myParticipatedCount(): number {
+        const email = this.currentUserEmail.toLowerCase();
+        if (!email) return 0;
+        return this.data.competitions()
+            .filter(c => (c.participants ?? []).some(p => p.email.toLowerCase() === email)).length;
+    }
+
+    get myCategories(): string[] {
+        const email = this.currentUserEmail.toLowerCase();
+        if (!email) return [];
+        const cats = new Set<string>();
+        this.data.competitions()
+            .filter(c => (c.participants ?? []).some(p => p.email.toLowerCase() === email))
+            .forEach(c => { if (c.category) cats.add(c.category); });
+        return Array.from(cats).slice(0, 5);
+    }
 
     selectedCategory = signal<string>('All');
 
@@ -931,16 +1015,11 @@ export class CompetitionsComponent implements OnInit {
     ngOnInit() {
         this.route.queryParams.subscribe(params => {
             const tab = params['tab'] as Tab;
-            const email = params['email'] as string;
             if (tab === 'recommended' || tab === 'all' || tab === 'ranking') {
                 this.activeTab.set(tab);
             }
-            if (email) {
-                this.recommendEmail = email;
-            }
-            if (tab === 'recommended' && email) {
-                // Auto-load recommendations when arriving from competition detail
-                setTimeout(() => this.loadRecommendations(), 150);
+            if (tab === 'recommended') {
+                setTimeout(() => this.loadForYou(), 150);
             }
             if (tab === 'ranking') {
                 this.loadRanking();
@@ -955,6 +1034,17 @@ export class CompetitionsComponent implements OnInit {
         this.data.getCompetitionRanking().subscribe(data => {
             this.ranking.set(data);
             this.rankingLoading.set(false);
+        });
+    }
+
+    loadForYou() {
+        this.activeTab.set('recommended');
+        const email = this.currentUserEmail;
+        if (!email) return;
+        this.recommendLoading.set(true);
+        this.data.getRecommendations(email).subscribe(comps => {
+            this.forYouComps.set(comps ?? []);
+            this.recommendLoading.set(false);
         });
     }
 

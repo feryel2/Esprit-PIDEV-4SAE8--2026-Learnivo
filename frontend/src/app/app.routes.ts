@@ -20,6 +20,21 @@ import { ClassesComponent } from './pages/classes.component';
 import { AdminCompetitionsComponent } from './pages/admin/admin-competitions.component';
 import { AdminClassesComponent } from './pages/admin/admin-classes.component';
 
+import { SpeechTestComponent } from './pages/speech-test.component';
+
+// Mohamed's user-service routes
+import { LoginComponent } from './components/auth/login/login.component';
+import { RegisterComponent } from './components/auth/register/register.component';
+import { VerifyComponent } from './components/auth/verify/verify.component';
+import { DashboardComponent } from './components/dashboard/dashboard.component';
+import { UserAdminDashboardComponent } from './components/admin/admin-dashboard.component';
+import { UsersComponent } from './components/admin/users/users.component';
+import { CoursesComponent } from './components/student/courses.component';
+import { ProfessorDashboardComponent } from './components/professor/professor-dashboard.component';
+import { authGuard } from './guards/auth.guard';
+import { roleGuard } from './guards/role.guard';
+import { guestGuard } from './guards/guest.guard';
+
 export const routes: Routes = [
     { path: '', component: HomeComponent },
     { path: 'trainings', component: TrainingsComponent },
@@ -33,11 +48,22 @@ export const routes: Routes = [
     { path: 'competitions/:slug', component: CompetitionDetailComponent },
     { path: 'classes', component: ClassesComponent },
     { path: 'certificate', component: CertificateComponent },
+    { path: 'speech-test', component: SpeechTestComponent },
 
-    // Admin Routes
+    // Auth routes (Mohamed's user-service)
+    { path: 'login', component: LoginComponent, canActivate: [guestGuard] },
+    { path: 'register', component: RegisterComponent, canActivate: [guestGuard] },
+    { path: 'verify', component: VerifyComponent },
+    { path: 'dashboard', component: DashboardComponent, canActivate: [authGuard] },
+    { path: 'courses', component: CoursesComponent, canActivate: [authGuard] },
+    { path: 'professor', component: ProfessorDashboardComponent, canActivate: [authGuard] },
+
+    // Admin Routes — requires ADMIN role
     {
         path: 'admin',
         component: AdminLayoutComponent,
+        canActivate: [authGuard, roleGuard],
+        data: { roles: ['ADMIN'] },
         children: [
             { path: '', component: AdminDashboardComponent },
             { path: 'trainings', component: AdminTrainingsComponent },
@@ -45,6 +71,8 @@ export const routes: Routes = [
             { path: 'events', component: AdminEventsComponent },
             { path: 'competitions', component: AdminCompetitionsComponent },
             { path: 'classes', component: AdminClassesComponent },
+            { path: 'user-dashboard', component: UserAdminDashboardComponent },
+            { path: 'users', component: UsersComponent },
         ]
     }
 ];

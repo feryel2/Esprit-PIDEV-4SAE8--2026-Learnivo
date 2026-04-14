@@ -9,7 +9,7 @@
 
     <!-- Desktop Nav -->
     <nav class="hidden items-center gap-8 md:flex">
-      @for (link of navLinks; track link.href) {
+      @for (link of publicLinks; track link.href) {
         <a
           [routerLink]="link.href"
           class="text-sm font-medium transition-colors hover:text-teal-600"
@@ -18,17 +18,59 @@
           {{ link.label }}
         </a>
       }
+      @if (isAdmin) {
+        <a
+          routerLink="/admin"
+          class="text-sm font-medium transition-colors hover:text-teal-600"
+          [class]="isCurrentRoute('/admin') ? 'text-teal-600 underline underline-offset-4' : 'text-foreground'"
+        >
+          Admin
+        </a>
+      }
     </nav>
 
     <!-- Desktop Actions -->
     <div class="hidden items-center gap-3 md:flex">
-      <a
-        href="#"
-        class="inline-flex items-center gap-1.5 rounded-full border border-teal-600 px-4 py-1.5 text-sm font-medium text-teal-600 transition-colors hover:bg-teal-600 hover:text-white"
-      >
-        <lucide-angular [img]="UserIcon" class="h-4 w-4"></lucide-angular>
-        Student space
-      </a>
+
+      <!-- NOT logged in -->
+      @if (!isLoggedIn) {
+        <a
+          routerLink="/login"
+          class="inline-flex items-center gap-1.5 rounded-full border border-teal-600 px-4 py-1.5 text-sm font-medium text-teal-600 transition-colors hover:bg-teal-600 hover:text-white"
+        >
+          <lucide-angular [img]="UserIcon" class="h-4 w-4"></lucide-angular>
+          Student space
+        </a>
+      }
+
+      <!-- Logged in -->
+      @if (isLoggedIn) {
+        <a
+          [routerLink]="dashboardRoute"
+          class="inline-flex items-center gap-1.5 rounded-full border border-teal-600 px-4 py-1.5 text-sm font-medium text-teal-600 transition-colors hover:bg-teal-600 hover:text-white"
+        >
+          <lucide-angular [img]="DashboardIcon" class="h-4 w-4"></lucide-angular>
+          My space
+        </a>
+
+        <!-- User avatar + email -->
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-teal-50 border border-teal-100">
+          <div class="w-6 h-6 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-bold">
+            {{ userInitial }}
+          </div>
+          <span class="text-xs font-medium text-teal-700 max-w-[120px] truncate">{{ currentUser?.email }}</span>
+        </div>
+
+        <!-- Logout -->
+        <button
+          (click)="logout()"
+          class="inline-flex items-center gap-1.5 rounded-full border border-red-400 px-4 py-1.5 text-sm font-medium text-red-500 transition-colors hover:bg-red-500 hover:text-white"
+        >
+          <lucide-angular [img]="LogOutIcon" class="h-4 w-4"></lucide-angular>
+          Logout
+        </button>
+      }
+
       <a
         href="#contact"
         class="inline-flex items-center gap-1.5 rounded-full bg-teal-600 px-4 py-1.5 text-sm font-medium text-white transition-colors hover:bg-teal-600/90"
@@ -36,18 +78,10 @@
         <lucide-angular [img]="PhoneIcon" class="h-4 w-4"></lucide-angular>
         Contact
       </a>
-      <button class="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-muted">
-        <lucide-angular [img]="GlobeIcon" class="h-4 w-4"></lucide-angular>
-        EN
-      </button>
     </div>
 
     <!-- Mobile toggle -->
-    <button
-      class="md:hidden"
-      (click)="toggleMobile()"
-      aria-label="Toggle navigation"
-    >
+    <button class="md:hidden" (click)="toggleMobile()" aria-label="Toggle navigation">
       @if (mobileOpen) {
         <lucide-angular [img]="XIcon" class="h-6 w-6"></lucide-angular>
       } @else {
@@ -60,7 +94,7 @@
   @if (mobileOpen) {
     <div class="border-t border-border bg-background px-4 pb-4 md:hidden">
       <nav class="flex flex-col gap-3 py-3">
-        @for (link of navLinks; track link.href) {
+        @for (link of publicLinks; track link.href) {
           <a
             [routerLink]="link.href"
             (click)="toggleMobile()"
@@ -70,15 +104,47 @@
             {{ link.label }}
           </a>
         }
+        @if (isAdmin) {
+          <a routerLink="/admin" (click)="toggleMobile()" class="text-sm font-medium text-foreground hover:text-teal-600">
+            Admin
+          </a>
+        }
       </nav>
-      <div class="flex flex-col gap-2">
-        <a
-          href="#"
-          class="inline-flex items-center justify-center gap-1.5 rounded-full border border-teal-600 px-4 py-2 text-sm font-medium text-teal-600"
-        >
-          <lucide-angular [img]="UserIcon" class="h-4 w-4"></lucide-angular>
-          Student space
-        </a>
+
+      <div class="flex flex-col gap-2 pt-2 border-t border-border">
+        @if (!isLoggedIn) {
+          <a
+            routerLink="/login"
+            (click)="toggleMobile()"
+            class="inline-flex items-center justify-center gap-1.5 rounded-full border border-teal-600 px-4 py-2 text-sm font-medium text-teal-600"
+          >
+            <lucide-angular [img]="UserIcon" class="h-4 w-4"></lucide-angular>
+            Student space
+          </a>
+        }
+        @if (isLoggedIn) {
+          <div class="flex items-center gap-2 px-3 py-2 rounded-xl bg-teal-50">
+            <div class="w-7 h-7 rounded-full bg-teal-600 flex items-center justify-center text-white text-xs font-bold">
+              {{ userInitial }}
+            </div>
+            <span class="text-sm font-medium text-teal-700 truncate">{{ currentUser?.email }}</span>
+          </div>
+          <a
+            [routerLink]="dashboardRoute"
+            (click)="toggleMobile()"
+            class="inline-flex items-center justify-center gap-1.5 rounded-full border border-teal-600 px-4 py-2 text-sm font-medium text-teal-600"
+          >
+            <lucide-angular [img]="DashboardIcon" class="h-4 w-4"></lucide-angular>
+            My space
+          </a>
+          <button
+            (click)="logout()"
+            class="inline-flex items-center justify-center gap-1.5 rounded-full border border-red-400 px-4 py-2 text-sm font-medium text-red-500"
+          >
+            <lucide-angular [img]="LogOutIcon" class="h-4 w-4"></lucide-angular>
+            Logout
+          </button>
+        }
         <a
           href="#contact"
           class="inline-flex items-center justify-center gap-1.5 rounded-full bg-teal-600 px-4 py-2 text-sm font-medium text-white"

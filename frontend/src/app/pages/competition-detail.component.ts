@@ -8,6 +8,7 @@ import {
   ThumbsUp, ThumbsDown
 } from 'lucide-angular';
 import { DataService, Competition, VoteStats, Announcement } from '../services/data.service';
+import { AuthService } from '../services/auth.service';
 
 type ModalStep = 'form' | 'confirm' | 'success';
 
@@ -213,6 +214,13 @@ type ModalStep = 'form' | 'confirm' | 'success';
                   <p class="text-xs text-muted-foreground">
                     Voting as <strong>{{ regEmail }}</strong>
                   </p>
+                }
+
+                @if (voteError()) {
+                  <div class="flex items-center gap-2 px-4 py-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm font-medium">
+                    <span>⚠️</span>
+                    <span>{{ voteError() }}</span>
+                  </div>
                 }
               </div>
 
@@ -673,6 +681,7 @@ type ModalStep = 'form' | 'confirm' | 'success';
 export class CompetitionDetailComponent implements OnInit, OnDestroy {
   private dataService = inject(DataService);
   private route = inject(ActivatedRoute);
+  private authService = inject(AuthService);
 
   readonly Trophy = Trophy; readonly Calendar = Calendar; readonly ArrowRight = ArrowRight;
   readonly Users = Users; readonly Clock = Clock; readonly CheckCircle2 = CheckCircle2;
@@ -691,6 +700,7 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
   voterEmail = signal<string>('');
   isVoting = signal(false);
   voteEmailInput = '';
+  voteError = signal<string | null>(null);
 
   // Share
   linkCopied = signal(false);
@@ -751,12 +761,25 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
         const key = `reg_comp_${comp.id}`;
         const emailKey = `reg_comp_email_${comp.id}`;
         const registered = localStorage.getItem(key) === 'true';
+
+        // Pre-fill form fields for logged-in users (does NOT count as registered)
+        if (this.authService.isAuthenticated()) {
+          const loggedInUser = this.authService.getCurrentUser();
+          const userEmail = loggedInUser?.email ?? '';
+          if (userEmail && !registered) {
+            this.regEmail = userEmail;
+            this.regName = (loggedInUser?.firstName || loggedInUser?.lastName)
+              ? `${loggedInUser.firstName ?? ''} ${loggedInUser.lastName ?? ''}`.trim()
+              : userEmail.split('@')[0];
+          }
+        }
+
         this.alreadyRegistered.set(registered);
         if (registered) {
           const storedEmail = localStorage.getItem(emailKey);
           if (storedEmail) this.regEmail = storedEmail;
         }
-        this.loadVoteStats(comp.id);
+        this.loadVoteStats(comp.id, registered ? localStorage.getItem(emailKey) ?? undefined : undefined);
         this.loadAnnouncements(comp.id);
       }
     });
@@ -895,8 +918,9 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  loadVoteStats(competitionId: number | string) {
-    this.dataService.getVoteStats(competitionId, this.voterEmail() || undefined).subscribe(stats => {
+  loadVoteStats(competitionId: number | string, emailOverride?: string) {
+    const email = emailOverride ?? (this.regEmail.trim() || undefined);
+    this.dataService.getVoteStats(competitionId, email).subscribe(stats => {
       if (stats) this.voteStats.set(stats);
     });
   }
@@ -909,12 +933,19 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
     if (!email) return;
 
     this.isVoting.set(true);
+    this.voteError.set(null);
     this.dataService.voteCompetition(comp.id, email, type).subscribe({
       next: stats => {
-        if (stats) this.voteStats.set(stats);
+        if (stats) {
+          this.voteStats.set(stats);
+        } else {
+          this.voteError.set('Vote failed — you must be registered for this competition.');
+        }
         this.isVoting.set(false);
       },
-      error: () => {
+      error: err => {
+        const msg = err?.error?.message ?? 'Vote failed — you must be registered for this competition.';
+        this.voteError.set(msg);
         this.isVoting.set(false);
       }
     });

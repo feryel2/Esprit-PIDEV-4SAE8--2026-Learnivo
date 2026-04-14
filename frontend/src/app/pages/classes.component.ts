@@ -7,6 +7,7 @@ import {
   AlertTriangle, ChevronRight, Check, Zap, BookOpen, ExternalLink
 } from 'lucide-angular';
 import { DataService, PlatformClass, EnrolledStudent } from '../services/data.service';
+import { AuthService } from '../services/auth.service';
 
 type JoinStep = 'form' | 'confirm' | 'success';
 
@@ -298,6 +299,7 @@ type JoinStep = 'form' | 'confirm' | 'success';
 })
 export class ClassesComponent implements OnInit {
   data = inject(DataService);
+  private authService = inject(AuthService);
 
   readonly Clock = Clock; readonly Globe = Globe; readonly Video = Video;
   readonly Calendar = Calendar; readonly Users = Users; readonly X = X;
@@ -375,7 +377,20 @@ export class ClassesComponent implements OnInit {
     this.joinStep.set('form');
     this.joinError.set(null);
     this.enrolledMeetLink.set(null);
-    this.joinName = ''; this.joinEmail = ''; this.joinLevel = ''; this.joinGoal = '';
+    this.joinLevel = ''; this.joinGoal = '';
+
+    // Pre-fill from logged-in user
+    const user = this.authService.getCurrentUser();
+    if (user?.email) {
+      this.joinEmail = user.email;
+      // Use email prefix as name placeholder if no profile name
+      this.joinName = user.firstName ?? user.lastName
+        ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim()
+        : user.email.split('@')[0];
+    } else {
+      this.joinName = ''; this.joinEmail = '';
+    }
+
     this.showModal.set(true);
   }
 

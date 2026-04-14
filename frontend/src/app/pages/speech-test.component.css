@@ -1,0 +1,4 @@
+/* Smooth score bar animation on result render */
+:host {
+  display: block;
+}

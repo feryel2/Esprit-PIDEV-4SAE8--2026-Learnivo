@@ -164,8 +164,10 @@ function fromComp(c: Omit<Competition, 'id'>): any {
 }
 
 // ─── API URLs ─────────────────────────────────────────────────────────────────
-const CLASS_API = 'http://localhost:8081/api';
-const COMP_API  = 'http://localhost:8082/api';
+const GATEWAY = 'http://localhost:8081';
+const CLASS_API = `${GATEWAY}/api`;
+const COMP_API = `${GATEWAY}/api`;
+
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 @Injectable({ providedIn: 'root' })

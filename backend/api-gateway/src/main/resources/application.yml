@@ -7,7 +7,6 @@ spring:
 
   cloud:
     gateway:
-      # Configuration CORS globale pour Angular (localhost:4200)
       globalcors:
         cors-configurations:
           '[/**]':
@@ -20,30 +19,56 @@ spring:
               - DELETE
               - OPTIONS
             allowedHeaders: "*"
-            allowCredentials: true
+            allowCredentials: false
 
       routes:
         # Routes vers class-service
         - id: class-service-classes
-          uri: lb://class-service
+          uri: http://localhost:9090
           predicates:
             - Path=/api/classes/**
 
         - id: class-service-professeurs
-          uri: lb://class-service
+          uri: http://localhost:9090
           predicates:
             - Path=/api/professeurs/**
 
         # Routes vers competition-service
         - id: competition-service-competitions
-          uri: lb://competition-service
+          uri: http://localhost:8082
           predicates:
             - Path=/api/competitions/**
 
         - id: competition-service-classements
-          uri: lb://competition-service
+          uri: http://localhost:8082
           predicates:
             - Path=/api/classements/**
+
+        - id: competition-service-speech
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/speech/**
+
+        # Routes vers user-service (auth, users, tickets, events)
+        - id: user-service-auth
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/auth/**
+
+        - id: user-service-users
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/users/**
+
+        - id: user-service-tickets
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/tickets/**
+
+        - id: user-service-events
+          uri: http://localhost:8085
+          predicates:
+            - Path=/api/events/**
 
 eureka:
   client:

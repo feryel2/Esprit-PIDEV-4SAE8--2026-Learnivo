@@ -1,0 +1,5 @@
+.admin-root { }
+
+/* Tailwind is primarily used for layout; keep a small fallback for non-tailwind setups */
+.admin-root h2 { margin-bottom: 0.5rem; }
+

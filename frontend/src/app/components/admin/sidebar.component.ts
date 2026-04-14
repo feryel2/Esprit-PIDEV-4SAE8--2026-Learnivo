@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import {
   LayoutDashboard,
   GraduationCap,
@@ -12,6 +12,7 @@ import {
   Video
 } from 'lucide-angular';
 import { LucideAngularModule } from 'lucide-angular';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -93,10 +94,10 @@ import { LucideAngularModule } from 'lucide-angular';
       </nav>
 
       <div class="p-4 border-t border-border">
-        <a routerLink="/" class="flex items-center gap-3 p-3 text-destructive hover:bg-destructive/10 rounded-xl transition-all">
+        <button (click)="logout()" class="w-full flex items-center gap-3 p-3 text-destructive hover:bg-destructive/10 rounded-xl transition-all">
           <lucide-icon [name]="LogOut" [size]="18"></lucide-icon>
-          <span class="font-medium">Exit Admin</span>
-        </a>
+          <span class="font-medium">Logout</span>
+        </button>
       </div>
     </aside>
   `
@@ -111,4 +112,11 @@ export class SidebarComponent {
   readonly ChevronRight = ChevronRight;
   readonly Trophy = Trophy;
   readonly Video = Video;
+
+  constructor(private authService: AuthService, private router: Router) {}
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
+  }
 }

@@ -1,0 +1,16 @@
+<div class="min-h-screen flex items-center justify-center p-6">
+    <div class="w-full max-w-md bg-white shadow rounded-lg overflow-hidden">
+        <div class="bg-blue-600 text-white px-6 py-4">
+            <h3 class="text-lg font-semibold">Email Verification</h3>
+        </div>
+        <div class="p-6 text-center">
+            <div [ngClass]="{'text-green-600': !isError, 'text-red-600': isError}" class="mb-4 text-lg">
+                {{ message }}
+            </div>
+            <div *ngIf="isError">
+                <button class="bg-blue-600 text-white px-4 py-2 rounded mt-2 hover:bg-blue-700" routerLink="/login">Go
+                    to Login</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -14,7 +14,6 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/competitions")
-@CrossOrigin(origins = "*")
 @RequiredArgsConstructor
 public class AnnouncementController {
 

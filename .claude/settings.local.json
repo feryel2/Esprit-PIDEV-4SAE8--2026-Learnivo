@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git:*)",
+      "Bash(cp -r demo backend/user-service)",
+      "Bash(rm -rf demo)",
+      "Bash(xargs grep:*)",
+      "Bash(cat backend/competition-service/src/main/resources/application.properties)",
+      "Bash(cat backend/competition-service/src/main/resources/application.yml)",
+      "Bash(cat backend/class-service/src/main/resources/application.properties)",
+      "Bash(cat backend/class-service/src/main/resources/application.yml)",
+      "Bash(ls frontend/src/app/pages/speech*)",
+      "Bash(ls frontend/src/app/services/speech*)",
+      "Bash(grep -r \"server.port\\\\|port:\" backend/*/src/main/resources/)",
+      "Bash(grep -r \"spring.application.name\\\\|application:\\\\| name:\" backend/*/src/main/resources/)"
+    ]
+  }
+}
