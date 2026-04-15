@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { LucideAngularModule, ArrowRight, Lock, CheckCircle2, Trophy } from 'lucide-angular';
 import { DataService, CourseRecommendation, CourseRecommendationResult, Quiz, Training } from '../services/data.service';
+import { AuthService } from '../services/auth.service';
 import { LearningProgressService } from '../services/learning-progress.service';
 
 @Component({
@@ -15,6 +16,7 @@ export class TrainingDetailComponent implements OnInit {
   private dataService = inject(DataService);
   private route = inject(ActivatedRoute);
   private learningProgress = inject(LearningProgressService);
+  private authService = inject(AuthService);
 
   readonly ArrowRightIcon = ArrowRight;
   readonly LockIcon = Lock;
@@ -41,7 +43,14 @@ export class TrainingDetailComponent implements OnInit {
       const linkedQuiz = await this.dataService.getQuizByCourseTitle(found.title);
       this.learningProgress.syncQuizState(found.slug, linkedQuiz?.id ?? null);
       this.quiz.set(linkedQuiz);
-      await this.loadRecommendations(found);
+      if (this.authService.isLoggedIn()) {
+        await this.loadRecommendations(found);
+      } else {
+        this.recommendations.set([]);
+        this.recommendationSource.set(null);
+        this.recommendationsError.set('Sign in to unlock personalized course recommendations.');
+        this.recommendationsLoading.set(false);
+      }
     } catch {
       this.training.set(null);
       this.quiz.set(null);

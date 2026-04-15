@@ -25,9 +25,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/quizzes/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/quizzes/*/evaluate").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/quizzes/*/hint").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/quizzes/*/evaluate").hasAnyRole("STUDENT", "TEACHER")
+                        .requestMatchers(HttpMethod.POST, "/api/quizzes/*/hint").hasAnyRole("STUDENT", "TEACHER")
                         .requestMatchers("/api/quizzes/**").hasRole("TEACHER")
                         .anyRequest().authenticated()
                 )

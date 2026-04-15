@@ -32,7 +32,8 @@ describe('LearningProgressService', () => {
       fullName: 'Student One',
       email: 'student1@example.com',
       role: 'STUDENT',
-      redirectPath: '/student'
+      redirectPath: '/student',
+      token: 'student-token'
     };
     service = new LearningProgressService({
       currentUser: () => currentUser
@@ -82,7 +83,8 @@ describe('LearningProgressService', () => {
       fullName: 'Student Two',
       email: 'student2@example.com',
       role: 'STUDENT',
-      redirectPath: '/student'
+      redirectPath: '/student',
+      token: 'student-two-token'
     };
 
     expect(service.isChapterCompleted(training.slug, 1)).toBe(false);
