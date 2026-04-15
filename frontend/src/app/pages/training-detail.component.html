@@ -1,0 +1,246 @@
+@if (training()) {
+<div class="mx-auto max-w-7xl px-4 py-10 lg:px-8">
+    <div class="overflow-hidden rounded-[2rem] border border-border bg-white shadow-sm">
+        <div class="aspect-[16/7] w-full overflow-hidden bg-muted/30">
+            <img [src]="training()!.banner || training()!.image" [alt]="training()!.title"
+                class="h-full w-full object-cover" />
+        </div>
+
+        <div class="space-y-8 p-6 md:p-8">
+            <div class="space-y-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-teal-700">
+                        {{ training()!.type }}
+                    </span>
+                    <span class="rounded-full bg-orange-50 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-orange-700">
+                        {{ training()!.level }}
+                    </span>
+                    @if (training()!.difficultyLabel) {
+                    <span class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide"
+                        [ngClass]="
+                            training()!.difficultyLabel === 'Advanced'
+                                ? 'bg-rose-50 text-rose-700'
+                                : training()!.difficultyLabel === 'Intermediate'
+                                    ? 'bg-amber-50 text-amber-700'
+                                    : 'bg-emerald-50 text-emerald-700'
+                        ">
+                        {{ training()!.difficultyLabel }}
+                    </span>
+                    }
+                    @if (training()!.category) {
+                    <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                        {{ training()!.category }}
+                    </span>
+                    }
+                </div>
+
+                <h1 class="text-2xl font-bold text-foreground md:text-4xl">
+                    {{ training()!.title }}
+                </h1>
+
+                <p class="max-w-4xl text-sm leading-7 text-muted-foreground md:text-base">
+                    {{ training()!.description }}
+                </p>
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-4">
+                <div class="rounded-2xl bg-muted/30 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Instructor</p>
+                    <p class="mt-2 text-sm font-semibold text-foreground">{{ training()!.instructor || 'Not assigned' }}</p>
+                </div>
+                <div class="rounded-2xl bg-muted/30 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Duration</p>
+                    <p class="mt-2 text-sm font-semibold text-foreground">{{ training()!.duration || 'Not set' }}</p>
+                </div>
+                <div class="rounded-2xl bg-muted/30 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Chapters</p>
+                    <p class="mt-2 text-sm font-semibold text-foreground">{{ training()!.chapters || 0 }}</p>
+                </div>
+                <div class="rounded-2xl bg-muted/30 p-4">
+                    <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Difficulty</p>
+                    <p class="mt-2 text-sm font-semibold text-foreground">
+                        {{ training()!.difficultyLabel || 'Unknown' }}
+                        @if (training()!.difficultyScore != null) {
+                        <span class="text-muted-foreground">({{ training()!.difficultyScore }}/100)</span>
+                        }
+                    </p>
+                </div>
+            </div>
+
+            <div class="rounded-[2rem] border border-border bg-muted/20 p-6">
+                <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Learning progress</p>
+                        <p class="mt-2 text-3xl font-extrabold text-foreground">{{ progressPercent() }}%</p>
+                        <p class="mt-2 text-sm text-muted-foreground">
+                            {{ completedChapterCount() }}/{{ training()!.chaptersData?.length ?? 0 }} chapters completed
+                            @if (quiz()) {
+                            | Quiz {{
+                                hasPassedQuiz()
+                                    ? 'passed'
+                                    : hasTakenQuiz()
+                                        ? 'taken'
+                                        : (isQuizUnlocked() ? 'unlocked' : 'locked')
+                            }}
+                            }
+                        </p>
+                    </div>
+                    <div class="w-full max-w-md">
+                        <div class="h-3 overflow-hidden rounded-full bg-white">
+                            <div class="h-full rounded-full bg-teal-600 transition-all duration-300" [style.width.%]="progressPercent()"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (training()!.chaptersData?.length) {
+            <div class="rounded-[2rem] border border-border bg-white p-6">
+                <div class="flex items-center justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Learning path</p>
+                        <h2 class="mt-2 text-xl font-bold text-foreground">Unlock chapter by chapter</h2>
+                    </div>
+                </div>
+
+                <div class="mt-6 grid gap-4">
+                    @for (chapter of training()!.chaptersData; track chapter.number) {
+                    <a [routerLink]="isChapterUnlocked(chapter.number) ? ['/courses', training()!.slug, chapter.number] : null"
+                        class="flex items-center justify-between rounded-[1.5rem] border px-5 py-4 transition"
+                        [class.border-emerald-200]="isChapterCompleted(chapter.number)"
+                        [class.bg-emerald-50]="isChapterCompleted(chapter.number)"
+                        [class.border-teal-200]="!isChapterCompleted(chapter.number) && isChapterUnlocked(chapter.number)"
+                        [class.bg-teal-50]="!isChapterCompleted(chapter.number) && isChapterUnlocked(chapter.number)"
+                        [class.opacity-60]="!isChapterUnlocked(chapter.number)"
+                        [class.pointer-events-none]="!isChapterUnlocked(chapter.number)">
+                        <div>
+                            <p class="text-sm font-semibold text-foreground">Chapter {{ chapter.number }}</p>
+                            <p class="text-xs text-muted-foreground">{{ chapter.name }}</p>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm font-semibold">
+                            @if (isChapterCompleted(chapter.number)) {
+                            <lucide-angular [img]="CheckCircle2Icon" class="h-4 w-4 text-emerald-600"></lucide-angular>
+                            <span class="text-emerald-700">Completed</span>
+                            } @else if (isChapterUnlocked(chapter.number)) {
+                            <span class="text-teal-700">Unlocked</span>
+                            } @else {
+                            <lucide-angular [img]="LockIcon" class="h-4 w-4 text-slate-500"></lucide-angular>
+                            <span class="text-slate-500">Locked</span>
+                            }
+                        </div>
+                    </a>
+                    }
+
+                    @if (quiz()) {
+                    <a [routerLink]="isQuizUnlocked() ? ['/courses', training()!.slug, 'quiz'] : null"
+                        class="flex items-center justify-between rounded-[1.5rem] border px-5 py-4 transition"
+                        [class.border-emerald-200]="hasPassedQuiz()"
+                        [class.bg-emerald-50]="hasPassedQuiz()"
+                        [class.border-rose-200]="!hasPassedQuiz() && hasTakenQuiz()"
+                        [class.bg-rose-50]="!hasPassedQuiz() && hasTakenQuiz()"
+                        [class.border-amber-200]="!hasPassedQuiz() && isQuizUnlocked()"
+                        [class.bg-amber-50]="!hasPassedQuiz() && isQuizUnlocked()"
+                        [class.opacity-60]="!isQuizUnlocked()"
+                        [class.pointer-events-none]="!isQuizUnlocked()">
+                        <div>
+                            <p class="text-sm font-semibold text-foreground">Final quiz</p>
+                            <p class="text-xs text-muted-foreground">
+                                {{ quiz()!.questions }} questions
+                                @if (hasTakenQuiz() && lastQuizResult().score !== null) {
+                                | Last score: {{ lastQuizResult().score }}%
+                                }
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm font-semibold">
+                            <lucide-angular [img]="TrophyIcon" class="h-4 w-4" [class.text-emerald-600]="hasPassedQuiz()" [class.text-rose-600]="!hasPassedQuiz() && hasTakenQuiz()" [class.text-amber-600]="!hasPassedQuiz() && !hasTakenQuiz() && isQuizUnlocked()" [class.text-slate-500]="!isQuizUnlocked()"></lucide-angular>
+                            <span [class.text-emerald-700]="hasPassedQuiz()" [class.text-rose-700]="!hasPassedQuiz() && hasTakenQuiz()" [class.text-amber-700]="!hasPassedQuiz() && !hasTakenQuiz() && isQuizUnlocked()" [class.text-slate-500]="!isQuizUnlocked()">
+                                {{ hasPassedQuiz() ? 'Passed' : (hasTakenQuiz() ? 'Taken' : (isQuizUnlocked() ? 'Unlocked' : 'Locked')) }}
+                            </span>
+                        </div>
+                    </a>
+                    }
+                </div>
+            </div>
+            }
+
+            <div class="rounded-[2rem] border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 p-6">
+                <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div class="max-w-2xl">
+                        <p class="text-xs font-semibold uppercase tracking-wide text-sky-700">Recommended next</p>
+                        <h2 class="mt-2 text-xl font-bold text-slate-950">Continue with the right course</h2>
+                        <p class="mt-2 text-sm leading-7 text-slate-600">
+                            These recommendations are tailored from the current course topic, level, and learning path.
+                        </p>
+                    </div>
+                    <span class="inline-flex items-center rounded-full bg-white px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-700 shadow-sm">
+                        {{ recommendationBadge() }}
+                    </span>
+                </div>
+
+                @if (recommendationsLoading()) {
+                <div class="mt-6 rounded-[1.5rem] border border-dashed border-sky-200 bg-white/70 px-5 py-6 text-sm text-slate-600">
+                    Loading recommendations...
+                </div>
+                } @else if (recommendationsError()) {
+                <div class="mt-6 rounded-[1.5rem] border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-700">
+                    {{ recommendationsError() }}
+                </div>
+                } @else if (recommendations().length) {
+                <div class="mt-6 grid gap-4 lg:grid-cols-3">
+                    @for (item of recommendations(); track item.course.id) {
+                    <a
+                        [routerLink]="['/courses', item.course.slug]"
+                        class="group overflow-hidden rounded-[1.75rem] border border-white/80 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                    >
+                        <div class="aspect-[16/10] overflow-hidden bg-slate-100">
+                            <img
+                                [src]="item.course.image"
+                                [alt]="item.course.title"
+                                class="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                            />
+                        </div>
+                        <div class="space-y-4 p-5">
+                            <div class="flex flex-wrap items-center gap-2">
+                                <span class="rounded-full bg-sky-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-sky-800">
+                                    {{ item.matchScore }}/100 match
+                                </span>
+                                @if (item.course.category) {
+                                <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
+                                    {{ item.course.category }}
+                                </span>
+                                }
+                            </div>
+
+                            <div>
+                                <h3 class="text-base font-bold leading-6 text-slate-950">{{ item.course.title }}</h3>
+                                <p class="mt-2 text-sm leading-6 text-slate-600">
+                                    {{ item.reason }}
+                                </p>
+                            </div>
+
+                            <div class="flex items-center justify-between gap-3 text-sm">
+                                <div class="text-slate-500">
+                                    {{ item.course.level }} · {{ item.course.duration || 'Flexible pace' }}
+                                </div>
+                                <span class="inline-flex items-center gap-2 font-semibold text-sky-700">
+                                    Explore
+                                    <lucide-angular [img]="ArrowRightIcon" class="h-4 w-4"></lucide-angular>
+                                </span>
+                            </div>
+                        </div>
+                    </a>
+                    }
+                </div>
+                }
+            </div>
+
+            <div>
+                <a [routerLink]="continueLearningLink()"
+                    class="inline-flex items-center gap-2 rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-700">
+                    Continue learning
+                    <lucide-angular [img]="ArrowRightIcon" class="h-4 w-4"></lucide-angular>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+}

@@ -1,0 +1,447 @@
+@if (training()) {
+<div class="mx-auto max-w-7xl px-4 py-10 lg:px-8">
+    <a [routerLink]="['/courses', training()!.slug]"
+        class="inline-flex items-center gap-2 text-sm font-medium text-teal-600 hover:underline">
+        <lucide-angular [img]="ArrowLeftIcon" class="h-4 w-4"></lucide-angular>
+        Back to course
+    </a>
+
+    <div class="mt-6 overflow-hidden rounded-[2rem] border border-border bg-white shadow-sm">
+        <div class="border-b border-border bg-muted/30 p-6">
+            <p class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{{ training()!.title }}</p>
+            <h1 class="mt-2 text-3xl font-extrabold text-foreground">
+                {{ isQuizStep() ? 'Course Quiz' : 'Course Content' }}
+            </h1>
+            <p class="mt-3 max-w-3xl text-sm leading-7 text-muted-foreground">
+                Complete each chapter to unlock the next one. The quiz opens only after all chapters are completed.
+            </p>
+            <div class="mt-5 max-w-xl">
+                <div class="flex items-center justify-between gap-3 text-sm font-semibold text-foreground">
+                    <span>Overall progress</span>
+                    <span>{{ progressPercent() }}%</span>
+                </div>
+                <div class="mt-2 h-3 overflow-hidden rounded-full bg-white">
+                    <div class="h-full rounded-full bg-teal-600 transition-all duration-300" [style.width.%]="progressPercent()"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid gap-8 p-6 lg:grid-cols-[320px_1fr]">
+            <aside class="space-y-4 rounded-[2rem] border border-border bg-muted/20 p-5">
+                <h2 class="text-lg font-bold text-foreground">Chapters</h2>
+
+                @for (chapter of training()!.chaptersData; track chapter.number) {
+                <a [routerLink]="isChapterUnlocked(chapter.number) ? ['/courses', training()!.slug, chapter.number] : null"
+                    class="flex items-center justify-between rounded-2xl border px-4 py-3 transition"
+                    [class.bg-white]="currentChapter()?.number === chapter.number && !isQuizStep()"
+                    [class.border-teal-600]="currentChapter()?.number === chapter.number && !isQuizStep()"
+                    [class.opacity-60]="!isChapterUnlocked(chapter.number)"
+                    [class.pointer-events-none]="!isChapterUnlocked(chapter.number)">
+                    <div>
+                        <p class="text-sm font-semibold text-foreground">Chapter {{ chapter.number }}</p>
+                        <p class="text-xs text-muted-foreground">{{ chapter.name }}</p>
+                    </div>
+                    <div class="flex items-center gap-2 text-xs font-semibold">
+                        @if (isChapterCompleted(chapter.number)) {
+                        <lucide-angular [img]="CheckCircle2Icon" class="h-4 w-4 text-emerald-600"></lucide-angular>
+                        <span class="text-emerald-700">Completed</span>
+                        } @else if (isChapterUnlocked(chapter.number)) {
+                        <span class="text-teal-700">Unlocked</span>
+                        } @else {
+                        <lucide-angular [img]="LockIcon" class="h-4 w-4 text-slate-500"></lucide-angular>
+                        <span class="text-slate-500">Locked</span>
+                        }
+                    </div>
+                </a>
+                }
+
+                @if (quiz()) {
+                <a [routerLink]="isQuizUnlocked() ? ['/courses', training()!.slug, 'quiz'] : null"
+                    class="flex items-center justify-between rounded-2xl border px-4 py-3 transition"
+                    [class.bg-white]="isQuizStep()"
+                    [class.border-teal-600]="isQuizStep()"
+                    [class.opacity-60]="!isQuizUnlocked()"
+                    [class.pointer-events-none]="!isQuizUnlocked()">
+                    <div>
+                        <p class="text-sm font-semibold text-foreground">Course Quiz</p>
+                        <p class="text-xs text-muted-foreground">
+                            {{ quiz()!.questions }} questions
+                            @if (!isQuizUnlocked()) {
+                            | Finish all chapters first
+                            }
+                        </p>
+                    </div>
+                    <lucide-angular [img]="isQuizUnlocked() ? TrophyIcon : LockIcon" class="h-5 w-5" [class.text-teal-600]="isQuizUnlocked()" [class.text-slate-500]="!isQuizUnlocked()"></lucide-angular>
+                </a>
+                }
+
+            </aside>
+
+            <div class="space-y-5">
+                @if (!isQuizStep() && currentChapter()) {
+                @if (chapterPdfUrl()) {
+                <div class="overflow-hidden rounded-2xl border border-border bg-muted/10">
+                    <iframe
+                        [src]="chapterPdfUrl()"
+                        title="Chapter PDF"
+                        class="h-[800px] w-full bg-white"
+                    ></iframe>
+                </div>
+                } @else {
+                <div class="rounded-2xl border border-dashed border-border bg-muted/20 p-10 text-center">
+                    <lucide-angular [img]="FileTextIcon" class="mx-auto h-8 w-8 text-muted-foreground"></lucide-angular>
+                    <p class="mt-4 text-sm text-muted-foreground">No PDF has been uploaded for this chapter yet.</p>
+                </div>
+                }
+
+                <div class="rounded-2xl border border-border bg-white p-5">
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <p class="text-sm font-bold text-foreground">Chapter {{ currentChapter()!.number }} status</p>
+                            <p class="mt-1 text-sm text-muted-foreground">
+                                {{ isChapterCompleted(currentChapter()!.number) ? 'This chapter is completed.' : 'Mark this chapter as completed to unlock the next one.' }}
+                            </p>
+                        </div>
+                        <button
+                            type="button"
+                            (click)="markCurrentChapterCompleted()"
+                            [disabled]="isChapterCompleted(currentChapter()!.number)"
+                            class="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition"
+                            [ngClass]="isChapterCompleted(currentChapter()!.number)
+                              ? 'cursor-not-allowed border border-emerald-200 bg-emerald-50 text-emerald-700'
+                              : 'bg-emerald-600 text-white hover:bg-emerald-700'">
+                            <lucide-angular [img]="CheckCircle2Icon" class="h-4 w-4"></lucide-angular>
+                            {{ isChapterCompleted(currentChapter()!.number) ? 'Completed' : 'Mark as completed' }}
+                        </button>
+                    </div>
+                </div>
+
+                @if (isLastChapter() && quiz()) {
+                <div class="rounded-2xl border border-teal-200 bg-teal-50/70 p-5">
+                    <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                        <div>
+                            <p class="text-sm font-bold text-foreground">Last chapter reached</p>
+                            <p class="mt-1 text-sm text-muted-foreground">
+                                @if (isQuizUnlocked()) {
+                                You can now start the quiz for {{ training()!.title }}.
+                                } @else {
+                                Complete this chapter to unlock the final quiz.
+                                }
+                            </p>
+                        </div>
+                        <a
+                            [routerLink]="isQuizUnlocked() ? ['/courses', training()!.slug, 'quiz'] : null"
+                            class="inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition"
+                            [ngClass]="isQuizUnlocked()
+                              ? 'bg-teal-600 text-white hover:bg-teal-700'
+                              : 'bg-slate-200 text-slate-500'"
+                            [class.pointer-events-none]="!isQuizUnlocked()"
+                        >
+                            <lucide-angular [img]="isQuizUnlocked() ? TrophyIcon : LockIcon" class="h-4 w-4"></lucide-angular>
+                            {{ isQuizUnlocked() ? 'Take Quiz' : 'Quiz Locked' }}
+                        </a>
+                    </div>
+                </div>
+                }
+                } @else if (isQuizStep()) {
+                @if (!quiz()) {
+                <div class="rounded-2xl border border-dashed border-border bg-muted/20 p-10 text-center">
+                    <p class="text-sm text-muted-foreground">No published quiz is associated with this course yet.</p>
+                </div>
+                } @else {
+                <div class="rounded-2xl border border-border p-6">
+                    <h2 class="text-xl font-bold text-foreground">{{ quiz()!.title }}</h2>
+                    <p class="mt-2 text-sm text-muted-foreground">
+                        Pass score: {{ quiz()!.passScore }}% | Attempts used: {{ quizAttempts() }}/2
+                    </p>
+                    <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        Anti-cheat rule: if you switch tab or leave this window during the quiz, the attempt fails automatically.
+                    </div>
+
+                    @if (antiCheatTriggered()) {
+                    <div class="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                        {{ antiCheatMessage() }}
+                    </div>
+                    }
+
+                    @if (quizSubmitted() && resultOverlayVisible()) {
+                    <div class="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/25 px-4 backdrop-blur-sm">
+                        <div class="relative w-full max-w-md rounded-[1.75rem] border px-5 py-4 shadow-2xl"
+                            [class.border-emerald-200]="quizPassed()"
+                            [class.bg-emerald-50]="quizPassed()"
+                            [class.border-rose-200]="!quizPassed()"
+                            [class.bg-rose-50]="!quizPassed()">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <p class="text-xs font-bold uppercase tracking-[0.24em]"
+                                        [class.text-emerald-700]="quizPassed()"
+                                        [class.text-rose-700]="!quizPassed()">
+                                        Quiz result
+                                    </p>
+                                    @if (restoredStoredResult()) {
+                                    <p class="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                        Restored after refresh
+                                    </p>
+                                    }
+                                    <p class="mt-2 text-2xl font-black text-foreground">
+                                        {{ quizScore() }}%
+                                    </p>
+                                    @if (quizBaseScore() !== null) {
+                                    <p class="mt-1 text-sm text-muted-foreground">
+                                        Weighted score: {{ quizBaseScore() }}%
+                                    </p>
+                                    }
+                                    <p class="mt-2 text-sm font-semibold"
+                                        [class.text-emerald-700]="quizPassed()"
+                                        [class.text-rose-700]="!quizPassed()">
+                                        {{ quizPassed() ? 'You passed the quiz.' : 'You did not pass this attempt.' }}
+                                    </p>
+                                </div>
+
+                                <div class="rounded-full px-3 py-1 text-xs font-bold"
+                                    [class.bg-emerald-100]="quizPassed()"
+                                    [class.text-emerald-700]="quizPassed()"
+                                    [class.bg-rose-100]="!quizPassed()"
+                                    [class.text-rose-700]="!quizPassed()">
+                                    {{ quizPassed() ? 'Passed' : 'Failed' }}
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                (click)="closeResultOverlay()"
+                                class="absolute right-5 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-black/10 bg-white/80 text-slate-600 transition hover:bg-white hover:text-slate-900"
+                                aria-label="Close result"
+                            >
+                                <lucide-angular [img]="XIcon" class="h-4 w-4"></lucide-angular>
+                            </button>
+
+                            @if (!quizPassed() && canTakeQuiz()) {
+                            <button
+                                type="button"
+                                (click)="retryQuiz()"
+                                class="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-white px-5 py-2 text-sm font-semibold text-foreground transition hover:bg-slate-50"
+                            >
+                                Retry quiz
+                            </button>
+                            }
+
+                            @if (!quizPassed() && !canTakeQuiz()) {
+                            <p class="mt-4 text-sm text-rose-700">
+                                Maximum attempts reached. Correct answers are shown below.
+                            </p>
+                            <button
+                                type="button"
+                                (click)="closeResultOverlay()"
+                                class="mt-4 inline-flex items-center gap-2 rounded-full border border-border bg-white px-5 py-2 text-sm font-semibold text-foreground transition hover:bg-slate-50"
+                            >
+                                Close
+                            </button>
+                            }
+
+                            @if (quizPassed()) {
+                            <p class="mt-4 text-sm text-emerald-700">
+                                Quiz completed successfully.
+                            </p>
+                            }
+                        </div>
+                    </div>
+                    }
+
+                    <div class="mt-6 space-y-5">
+                        @for (question of questions(); track question.id; let questionIndex = $index) {
+                        <div class="rounded-2xl border border-border p-5">
+                            <div class="flex flex-wrap items-center justify-between gap-3">
+                                <p class="text-sm font-semibold text-foreground">{{ questionIndex + 1 }}. {{ question.text }}</p>
+                                <span class="rounded-full bg-teal-50 px-3 py-1 text-[11px] font-semibold text-teal-700">
+                                    {{ question.difficulty || quiz()!.difficulty }} | weight {{ question.weight || 1 }}
+                                </span>
+                            </div>
+                            <div class="mt-4 grid gap-3">
+                                @for (option of question.options; track option; let optionIndex = $index) {
+                                <label class="flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm transition"
+                                    [class.border-teal-600]="selectedAnswers()[questionIndex] === optionIndex"
+                                    [class.bg-teal-50]="selectedAnswers()[questionIndex] === optionIndex"
+                                    [class.border-emerald-600]="revealAnswers() && question.correctAnswer === optionIndex"
+                                    [class.bg-emerald-50]="revealAnswers() && question.correctAnswer === optionIndex">
+                                    <input
+                                        type="radio"
+                                        [name]="'question-' + questionIndex"
+                                        [checked]="selectedAnswers()[questionIndex] === optionIndex"
+                                        (change)="selectAnswer(questionIndex, optionIndex)"
+                                        [disabled]="quizSubmitted() || !canTakeQuiz()"
+                                        class="h-4 w-4 accent-teal-600"
+                                    />
+                                    <span>{{ option }}</span>
+                                </label>
+                            }
+                            </div>
+
+                            @if (canTakeQuiz() && !quizSubmitted()) {
+                            <div class="mt-4 overflow-hidden rounded-[1.5rem] border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-cyan-50 shadow-sm">
+                                <div class="flex items-center justify-between border-b border-sky-100 px-4 py-3">
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-sky-100 text-sky-700">
+                                            <lucide-angular [img]="LightbulbIcon" class="h-5 w-5"></lucide-angular>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-semibold text-sky-950">AI Study Hint</p>
+                                            <p class="text-xs font-medium uppercase tracking-[0.18em] text-sky-700">
+                                                Guided clue system
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center gap-2">
+                                        @for (level of hintLevels; track level) {
+                                        <span
+                                            class="flex h-7 w-7 items-center justify-center rounded-full border text-[11px] font-bold transition"
+                                            [class.border-sky-600]="usedHintLevel(question.id) >= level"
+                                            [class.bg-sky-600]="usedHintLevel(question.id) >= level"
+                                            [class.text-white]="usedHintLevel(question.id) >= level"
+                                            [class.border-sky-200]="usedHintLevel(question.id) < level"
+                                            [class.bg-white]="usedHintLevel(question.id) < level"
+                                            [class.text-sky-700]="usedHintLevel(question.id) < level">
+                                            {{ level }}
+                                        </span>
+                                        }
+                                    </div>
+                                </div>
+
+                                <div class="p-4">
+                                    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                        <div>
+                                            <p class="text-sm font-semibold text-slate-900">Need a nudge without spoilers?</p>
+                                            <p class="mt-1 text-sm leading-6 text-slate-600">
+                                                Get a progressive hint that points you in the right direction without revealing the exact answer.
+                                            </p>
+                                            @if (currentHint(question.id)) {
+                                            <p class="mt-2 inline-flex items-center gap-2 rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-800">
+                                                <lucide-angular [img]="SparklesIcon" class="h-3.5 w-3.5"></lucide-angular>
+                                                Hint {{ currentHint(question.id)!.hintLevel }}/3 unlocked
+                                            </p>
+                                            }
+                                        </div>
+
+                                    <button
+                                        type="button"
+                                        (click)="requestHint(questionIndex)"
+                                        [disabled]="!canRequestHint(question.id) || isHintLoading(question.id)"
+                                        class="inline-flex min-w-40 items-center justify-center rounded-full px-4 py-2.5 text-sm font-semibold transition"
+                                        [ngClass]="(!canRequestHint(question.id) || isHintLoading(question.id))
+                                          ? 'cursor-not-allowed bg-slate-200 text-slate-500'
+                                          : 'bg-sky-600 text-white shadow-sm hover:bg-sky-700'"
+                                    >
+                                        {{ hintButtonLabel(question.id) }}
+                                    </button>
+                                    </div>
+                                </div>
+
+                                @if (currentHint(question.id)) {
+                                <div class="mt-4 rounded-[1.25rem] border border-sky-200 bg-white/90 p-4 shadow-sm">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="rounded-full bg-sky-100 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-sky-800">
+                                            Hint {{ currentHint(question.id)!.hintLevel }}
+                                        </span>
+                                        <span class="rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-600">
+                                            {{ currentHint(question.id)!.source === 'AI' ? 'AI assisted' : 'Smart local fallback' }}
+                                        </span>
+                                    </div>
+
+                                    <p class="mt-3 text-sm leading-7 text-slate-700">{{ currentHint(question.id)!.hint }}</p>
+
+                                    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">
+                                            {{ currentHint(question.id)!.remainingHints }} hint(s) remaining
+                                        </p>
+                                        @if (currentHint(question.id)!.remainingHints === 0) {
+                                        <p class="text-xs font-semibold text-amber-700">
+                                            Maximum hints reached for this question.
+                                        </p>
+                                        }
+                                    </div>
+                                </div>
+                                }
+                            </div>
+                            }
+
+                            @if (revealAnswers()) {
+                            <p class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                                Correct answer: {{ question.options[question.correctAnswer] }}.
+                                @if (question.explanation) {
+                                {{ question.explanation }}
+                                }
+                            </p>
+                            }
+                        </div>
+                        }
+                    </div>
+
+                    @if (canTakeQuiz() && !quizSubmitted()) {
+                    @if (hintError()) {
+                    <div class="mt-6 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+                        {{ hintError() }}
+                    </div>
+                    }
+                    <div class="mt-6 rounded-2xl border border-border bg-muted/20 p-5">
+                        <label for="learner-email" class="text-sm font-semibold text-foreground">Result email</label>
+                        <p class="mt-1 text-sm text-muted-foreground">
+                            Enter the learner email used to receive a quiz result summary after submission.
+                        </p>
+                        <input
+                            id="learner-email"
+                            type="email"
+                            [ngModel]="learnerEmail()"
+                            (ngModelChange)="learnerEmail.set($event); learnerEmailError.set('')"
+                            placeholder="student@example.com"
+                            class="mt-4 w-full rounded-2xl border border-border bg-white px-4 py-3 text-sm text-foreground outline-none transition focus:border-teal-600"
+                        />
+                        @if (learnerEmailError()) {
+                        <p class="mt-3 text-sm text-rose-700">{{ learnerEmailError() }}</p>
+                        } @else {
+                        <p class="mt-3 text-sm text-muted-foreground">
+                            Demo mode: the backend prepares the email summary and returns it to the interface.
+                        </p>
+                        }
+                    </div>
+                    <button
+                        type="button"
+                        (click)="submitQuiz()"
+                        class="mt-6 inline-flex items-center gap-2 rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
+                    >
+                        Submit quiz
+                    </button>
+                    }
+
+                    @if (quizSubmitted()) {
+                    @if (emailNotification()) {
+                    <div class="mt-6 rounded-2xl border border-teal-200 bg-white p-4">
+                        <p class="text-sm font-bold text-blue-600">
+                            Verify email sent
+                        </p>
+                    </div>
+                    }
+                    }
+                </div>
+                }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+} @else {
+<div class="mx-auto max-w-3xl px-4 py-16 text-center lg:px-8">
+    <div class="rounded-[2rem] border border-dashed border-border bg-muted/20 p-10">
+        <p class="text-lg font-semibold text-foreground">Course step unavailable</p>
+        <p class="mt-3 text-sm text-muted-foreground">
+            {{ loadError() || 'This chapter could not be displayed.' }}
+        </p>
+        <a
+            routerLink="/courses"
+            class="mt-6 inline-flex items-center justify-center rounded-full bg-teal-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-teal-700"
+        >
+            Back to courses
+        </a>
+    </div>
+</div>
+}

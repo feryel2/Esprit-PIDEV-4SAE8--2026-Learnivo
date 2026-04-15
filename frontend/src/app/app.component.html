@@ -1,0 +1,11 @@
+@if (!isTeacherRoute) {
+<app-navbar></app-navbar>
+}
+
+<main [class.min-h-screen]="!isTeacherRoute">
+  <router-outlet></router-outlet>
+</main>
+
+@if (!isTeacherRoute) {
+<app-footer></app-footer>
+}
