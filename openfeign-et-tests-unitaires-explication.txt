@@ -1,0 +1,419 @@
+EXPLICATION OPENFEIGN ET TESTS UNITAIRES
+=======================================
+
+1. OPENFEIGN
+-------------
+
+Definition
+OpenFeign est une bibliotheque Spring Cloud qui permet a un microservice d'appeler un autre microservice comme s'il appelait une simple methode Java. Au lieu d'ecrire manuellement du code HTTP, on cree une interface et Spring genere automatiquement l'appel REST.
+
+Utilite dans ce projet
+Dans ce projet, OpenFeign est utilise dans le course-service pour communiquer avec le quiz-service.
+Son utilite principale est de garder la coherence entre les cours et les quiz.
+
+Exemples concrets dans le projet
+- si le titre d'un cours change, le course-service informe le quiz-service pour renommer le champ course dans les quiz associes
+- si un cours est supprime, le course-service informe le quiz-service pour supprimer les quiz lies a ce cours
+
+Pourquoi c'est utile
+- evite d'ecrire du code HTTP manuel
+- rend le code plus simple et plus lisible
+- facilite la communication entre microservices
+- centralise la synchronisation entre course-service et quiz-service
+
+
+2. EMPLACEMENT DU CODE OPENFEIGN
+--------------------------------
+
+2.1 Dependances Maven
+Fichier :
+backend/course-service/pom.xml
+
+Role :
+Ce fichier contient la dependance OpenFeign necessaire au projet.
+
+Code important :
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-openfeign</artifactId>
+</dependency>
+
+Explication :
+Cette dependance active le support OpenFeign dans Spring Boot.
+
+
+2.2 Activation de Feign
+Fichier :
+backend/course-service/src/main/java/com/esprit/courseservice/CourseServiceApplication.java
+
+Code important :
+@SpringBootApplication
+@EnableFeignClients
+public class CourseServiceApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(CourseServiceApplication.class, args);
+    }
+}
+
+Explication :
+L'annotation @EnableFeignClients demande a Spring de chercher les interfaces Feign et de generer automatiquement leur implementation.
+
+
+2.3 Interface Feign
+Fichier :
+backend/course-service/src/main/java/com/esprit/courseservice/service/QuizServiceFeignClient.java
+
+Code :
+@FeignClient(name = "quiz-service", path = "/api/quizzes")
+public interface QuizServiceFeignClient {
+
+    @PatchMapping("/sync/course-title")
+    void renameCourse(@RequestBody CourseRenameRequest request);
+
+    @DeleteMapping("/sync/by-course")
+    void deleteByCourseTitle(@RequestParam("courseTitle") String courseTitle);
+}
+
+Explication ligne par ligne :
+- @FeignClient(name = "quiz-service", path = "/api/quizzes")
+  indique que cette interface appelle le microservice quiz-service
+  path = "/api/quizzes" ajoute le prefixe commun a toutes les routes
+
+- void renameCourse(@RequestBody CourseRenameRequest request)
+  cette methode appelle l'endpoint PATCH /api/quizzes/sync/course-title
+  elle sert a renommer dans le quiz-service le titre du cours associe
+
+- void deleteByCourseTitle(@RequestParam("courseTitle") String courseTitle)
+  cette methode appelle l'endpoint DELETE /api/quizzes/sync/by-course
+  elle sert a supprimer les quiz associes a un cours
+
+
+2.4 Classe intermediaire
+Fichier :
+backend/course-service/src/main/java/com/esprit/courseservice/service/QuizServiceClient.java
+
+Role :
+Cette classe encapsule l'appel Feign et gere les erreurs proprement.
+
+Code important :
+public class QuizServiceClient {
+
+    private final QuizServiceFeignClient quizServiceFeignClient;
+
+    public void renameCourse(String previousTitle, String nextTitle) {
+        try {
+            quizServiceFeignClient.renameCourse(new CourseRenameRequest(previousTitle, nextTitle));
+        } catch (RuntimeException exception) {
+            log.warn("Failed to sync quiz course title ...");
+        }
+    }
+
+    public void deleteByCourseTitle(String courseTitle) {
+        try {
+            quizServiceFeignClient.deleteByCourseTitle(courseTitle);
+        } catch (RuntimeException exception) {
+            log.warn("Failed to delete quizzes ...");
+        }
+    }
+}
+
+Explication :
+Au lieu d'utiliser directement l'interface Feign partout, le projet passe par cette classe de service. Cela permet :
+- de centraliser les appels
+- de gerer les exceptions
+- d'eviter que le service principal soit trop charge
+
+
+2.5 Utilisation dans la logique metier
+Fichier :
+backend/course-service/src/main/java/com/esprit/courseservice/service/CourseService.java
+
+Code important :
+if (!previousTitle.equals(saved.getTitle())) {
+    quizServiceClient.renameCourse(previousTitle, saved.getTitle());
+}
+
+quizServiceClient.deleteByCourseTitle(courseTitle);
+
+Explication :
+Quand un cours est modifie ou supprime, le CourseService appelle QuizServiceClient, qui lui-meme appelle QuizServiceFeignClient.
+
+
+2.6 Reception des appels cote quiz-service
+Fichier :
+backend/quiz-service/src/main/java/com/esprit/quizservice/controller/QuizController.java
+
+Code important :
+@PatchMapping("/sync/course-title")
+public void renameCourseTitle(@Valid @RequestBody CourseRenameRequest request) {
+    quizService.renameCourseTitle(request.previousTitle(), request.nextTitle());
+}
+
+@DeleteMapping("/sync/by-course")
+public void deleteByCourseTitle(@RequestParam String courseTitle) {
+    quizService.deleteByCourseTitle(courseTitle);
+}
+
+Explication :
+Ces endpoints recoivent les appels envoyes par OpenFeign depuis course-service.
+
+
+2.7 Traitement cote service
+Fichier :
+backend/quiz-service/src/main/java/com/esprit/quizservice/service/QuizService.java
+
+Code important :
+public long renameCourseTitle(String previousTitle, String nextTitle) {
+    List<Quiz> quizzes = quizRepository.findByCourseIgnoreCase(previousTitle);
+    quizzes.forEach(quiz -> quiz.setCourse(nextTitle.trim()));
+    quizRepository.saveAll(quizzes);
+    return quizzes.size();
+}
+
+public long deleteByCourseTitle(String courseTitle) {
+    List<Quiz> quizzes = quizRepository.findByCourseIgnoreCase(courseTitle);
+    quizRepository.deleteAll(quizzes);
+    return quizzes.size();
+}
+
+Explication :
+Le quiz-service applique reellement la mise a jour ou la suppression des quiz.
+
+
+2.8 Securite Feign
+Fichier :
+backend/course-service/src/main/java/com/esprit/courseservice/config/FeignSecurityConfig.java
+
+Code important :
+@Bean
+public RequestInterceptor bearerTokenForwardingInterceptor() {
+    return template -> {
+        String authorizationHeader = request.getHeader("Authorization");
+        if (authorizationHeader != null && !authorizationHeader.isBlank()) {
+            template.header("Authorization", authorizationHeader);
+        }
+    };
+}
+
+Explication :
+Ce code transmet le token Authorization du course-service vers le quiz-service. Cela permet de garder la securite lors des appels internes.
+
+
+2.9 Resume du flux OpenFeign
+----------------------------
+1. Un administrateur modifie ou supprime un cours
+2. CourseService detecte ce changement
+3. CourseService appelle QuizServiceClient
+4. QuizServiceClient appelle QuizServiceFeignClient
+5. OpenFeign envoie la requete HTTP vers quiz-service
+6. QuizController recoit la requete
+7. QuizService met a jour ou supprime les quiz
+
+
+3. TESTS UNITAIRES
+------------------
+
+Definition
+Un test unitaire verifie une petite unite de code isolee, par exemple un service, un composant ou une fonction.
+Le but est de tester la logique metier sans dependre d'un vrai backend, d'une vraie base de donnees ou d'autres services reels.
+
+Comment reconnaitre un test unitaire
+- il teste une seule unite a la fois
+- il utilise des mocks ou des objets simules
+- il verifie un comportement precis
+- il contient souvent des assertions
+- il est souvent place dans un fichier .spec.ts en frontend ou dans une classe de test JUnit en backend
+
+
+4. TESTS UNITAIRES FRONTEND
+---------------------------
+
+Emplacement des fichiers
+- frontend/src/app/app.component.spec.ts
+- frontend/src/app/services/auth.interceptor.spec.ts
+- frontend/src/app/services/data.service.spec.ts
+- frontend/src/app/services/learning-progress.service.spec.ts
+- frontend/src/app/pages/chapter-detail.component.spec.ts
+
+Mots-cles importants
+- describe(...) : groupe de tests
+- it(...) : cas de test individuel
+- expect(...) : verifie le resultat attendu
+- beforeEach(...) : initialise le contexte avant chaque test
+- afterEach(...) : nettoyage apres chaque test
+- TestBed : environnement Angular de test
+- vi.fn() : mock d'une fonction
+- HttpTestingController : faux controleur HTTP
+
+
+4.1 Exemple : app.component.spec.ts
+Fichier :
+frontend/src/app/app.component.spec.ts
+
+Code important :
+describe('AppComponent', () => {
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    expect(app).toBeTruthy();
+  });
+});
+
+Explication :
+- describe regroupe les tests du composant AppComponent
+- it declare un comportement a verifier
+- TestBed.createComponent cree le composant
+- expect(app).toBeTruthy() verifie que le composant est bien cree
+
+
+4.2 Exemple : auth.interceptor.spec.ts
+Fichier :
+frontend/src/app/services/auth.interceptor.spec.ts
+
+Code important :
+localStorage.setItem('learnivo.auth-user', JSON.stringify({ token: 'demo-token' }));
+httpClient.get('/api/demo').subscribe();
+const request = httpMock.expectOne('/api/demo');
+expect(request.request.headers.get('Authorization')).toBe('Bearer demo-token');
+
+Explication :
+Ce test verifie que l'interceptor ajoute bien le header Authorization.
+
+Mots-cles utiles :
+- httpMock.expectOne(...) : attend une requete precise
+- expect(...) : verifie le header
+
+
+4.3 Exemple : data.service.spec.ts
+Fichier :
+frontend/src/app/services/data.service.spec.ts
+
+Code important :
+const request = httpMock.expectOne('http://localhost:8080/api/courses/recommendations/ai');
+expect(request.request.method).toBe('POST');
+request.flush({...});
+
+Explication :
+Ce test verifie l'appel HTTP du service Angular sans utiliser un vrai backend.
+
+Role de HttpTestingController
+- intercepte les requetes HTTP
+- permet de verifier l'URL et la methode
+- renvoie une fausse reponse avec flush(...)
+- garantit un vrai test unitaire sans serveur reel
+
+
+4.4 Exemple : learning-progress.service.spec.ts
+Fichier :
+frontend/src/app/services/learning-progress.service.spec.ts
+
+Code important :
+expect(service.isChapterUnlocked(training, 1)).toBe(true);
+expect(service.isQuizUnlocked(training)).toBe(false);
+
+Explication :
+Ce test verifie la logique du service de progression.
+On teste directement les methodes du service sans backend.
+
+
+4.5 Exemple : chapter-detail.component.spec.ts
+Fichier :
+frontend/src/app/pages/chapter-detail.component.spec.ts
+
+Code important :
+const dataServiceMock = {
+  getPublishedTrainingBySlug: vi.fn(),
+  getQuizByCourseTitle: vi.fn()
+};
+
+expect(component.learnerEmailError()).toContain('Enter a valid email');
+
+Explication :
+Ce test utilise des mocks pour simuler DataService et LearningProgressService.
+Le composant est donc teste de facon isolee.
+
+
+5. TESTS UNITAIRES BACKEND
+--------------------------
+
+Emplacement principal
+- backend/quiz-service/src/test/java/com/esprit/quizservice/service/QuizServiceTest.java
+- backend/quiz-service/src/test/java/com/esprit/quizservice/QuizServiceSecurityTests.java
+
+Mots-cles importants
+- @Test : indique une methode de test
+- @BeforeEach : initialise le contexte avant chaque test
+- @Mock : cree un faux objet
+- @InjectMocks : injecte les mocks dans la classe testee
+- when(...).thenReturn(...) : simule le comportement d'un mock
+- verify(...) : verifie qu'une methode a ete appelee
+- assertEquals, assertTrue, assertFalse, assertThrows : assertions JUnit
+
+
+5.1 Exemple general de test backend
+Code type :
+@ExtendWith(MockitoExtension.class)
+class QuizServiceTest {
+
+    @Mock
+    private QuizRepository quizRepository;
+
+    @InjectMocks
+    private QuizService quizService;
+
+    @Test
+    void shouldFindQuizById() {
+        when(quizRepository.findById(1L)).thenReturn(Optional.of(quiz));
+
+        Quiz result = quizService.findById(1L);
+
+        assertNotNull(result);
+        verify(quizRepository).findById(1L);
+    }
+}
+
+Explication :
+- @Mock remplace le repository reel
+- @InjectMocks cree le service a tester
+- when(...).thenReturn(...) simule la reponse du repository
+- verify(...) confirme que l'appel attendu a bien eu lieu
+
+
+6. MOTS-CLES QUI MONTRENT QU'IL S'AGIT DE TESTS UNITAIRES
+---------------------------------------------------------
+
+Frontend
+- .spec.ts
+- describe
+- it
+- expect
+- beforeEach
+- afterEach
+- TestBed
+- vi.fn
+- HttpTestingController
+
+Backend
+- @Test
+- @BeforeEach
+- @Mock
+- @InjectMocks
+- when(...).thenReturn(...)
+- verify(...)
+- assertEquals
+- assertTrue
+- assertFalse
+- assertThrows
+
+
+7. PHRASES PRETES A UTILISER DANS UN RAPPORT OU UNE SOUTENANCE
+--------------------------------------------------------------
+
+Phrase sur OpenFeign
+OpenFeign a ete implemente dans le course-service pour permettre la communication automatique avec le quiz-service. Il est utilise pour synchroniser les quiz lorsqu'un cours est renomme ou supprime.
+
+Phrase sur les tests unitaires frontend
+Les tests unitaires frontend sont identifies par des fichiers .spec.ts utilisant describe, it et expect. Ils permettent de tester des composants et services Angular de maniere isolee, en simulant les dependances avec des mocks.
+
+Phrase sur les tests unitaires backend
+Les tests unitaires backend utilisent JUnit et Mockito avec des annotations comme @Test, @Mock et @InjectMocks. Ils permettent de verifier la logique metier d'une classe sans utiliser une vraie base de donnees ni de services externes.

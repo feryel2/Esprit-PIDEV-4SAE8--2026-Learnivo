@@ -93,6 +93,30 @@ class QuizServiceTest {
     }
 
     @Test
+    void shouldRejectQuestionWithDuplicateOptions() {
+        QuizRequest request = new QuizRequest(
+                "Duplicate Options Quiz",
+                "Secure Course",
+                "Security",
+                QuizDifficulty.INTERMEDIATE,
+                3,
+                "10 min",
+                75,
+                QuizStatus.DRAFT,
+                null,
+                List.of(
+                        questionWithOptions("q1", List.of("A", "A", "C", "D")),
+                        question("q2"),
+                        question("q3")
+                )
+        );
+
+        BadRequestException exception = assertThrows(BadRequestException.class, () -> quizService.create(request));
+
+        assertEquals("Each quiz question must contain four distinct answer options.", exception.getMessage());
+    }
+
+    @Test
     void shouldPickLatestAvailablePublishedQuizForCourse() {
         Quiz older = quiz(1L, "Older Quiz", Instant.parse("2026-04-10T10:00:00Z"));
         Quiz newer = quiz(2L, "Newer Quiz", Instant.parse("2026-04-12T10:00:00Z"));
@@ -215,10 +239,14 @@ class QuizServiceTest {
     }
 
     private QuizQuestionRequest question(String id) {
+        return questionWithOptions(id, List.of("A", "B", "C", "D"));
+    }
+
+    private QuizQuestionRequest questionWithOptions(String id, List<String> options) {
         return new QuizQuestionRequest(
                 id,
                 "What is the right answer for " + id + "?",
-                List.of("A", "B", "C", "D"),
+                options,
                 1,
                 "Because this is the expected answer.",
                 null,

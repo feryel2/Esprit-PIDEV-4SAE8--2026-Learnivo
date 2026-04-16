@@ -214,6 +214,14 @@ public class QuizService {
         if (distinctIds != request.items().size()) {
             throw new BadRequestException("Each quiz question id must be unique.");
         }
+        boolean duplicatedOptions = request.items().stream()
+                .anyMatch(item -> item.options().stream()
+                        .map(option -> option.trim().toLowerCase(Locale.ROOT))
+                        .distinct()
+                        .count() != item.options().size());
+        if (duplicatedOptions) {
+            throw new BadRequestException("Each quiz question must contain four distinct answer options.");
+        }
     }
 
 

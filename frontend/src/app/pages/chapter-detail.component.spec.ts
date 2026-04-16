@@ -1,0 +1,234 @@
+import { BehaviorSubject } from 'rxjs';
+import { TestBed, ComponentFixture } from '@angular/core/testing';
+import { ActivatedRoute, Router } from '@angular/router';
+import { provideRouter } from '@angular/router';
+import { ChapterDetailComponent } from './chapter-detail.component';
+import {
+  DataService,
+  Quiz,
+  QuizAttemptResult,
+  QuizHintResult,
+  Training,
+  TrainingChapter
+} from '../services/data.service';
+import { LearningProgressService } from '../services/learning-progress.service';
+
+describe('ChapterDetailComponent', () => {
+  let fixture: ComponentFixture<ChapterDetailComponent>;
+  let component: ChapterDetailComponent;
+  let router: Router;
+  let routeParams$: BehaviorSubject<{ slug: string; chapterId: string }>;
+
+  const training: Training = {
+    id: 1,
+    title: 'Grammar Bootcamp',
+    description: 'Course description',
+    type: 'Blended course',
+    status: 'Published',
+    level: 'Intermediate',
+    image: '/images/course.jpg',
+    banner: '/images/banner.jpg',
+    slug: 'grammar-bootcamp',
+    action: 'Enroll now',
+    chapters: 2,
+    duration: '4 weeks',
+    chaptersData: [
+      { name: 'Chapter 1', number: 1, pdfUrl: 'https://example.com/chapter-1.pdf', sections: [] },
+      { name: 'Chapter 2', number: 2, pdfUrl: 'https://example.com/chapter-2.pdf', sections: [] }
+    ]
+  };
+
+  const questions = [
+    {
+      id: 'q1',
+      text: 'Choose the right answer',
+      options: ['A', 'B', 'C', 'D'],
+      correctAnswer: 1,
+      explanation: 'Because B is correct.',
+      difficulty: 'Intermediate' as const,
+      weight: 2
+    }
+  ];
+
+  const quiz: Quiz = {
+    id: 7,
+    title: 'Grammar Final Quiz',
+    course: training.title,
+    category: 'Grammar',
+    difficulty: 'Intermediate',
+    questions: 1,
+    duration: '10 min',
+    passScore: 70,
+    status: 'Published',
+    items: questions
+  };
+
+  const dataServiceMock = {
+    getPublishedTrainingBySlug: vi.fn<() => Promise<Training>>(),
+    getQuizByCourseTitle: vi.fn<() => Promise<Quiz | null>>(),
+    getQuizQuestions: vi.fn<() => typeof questions>(),
+    getQuizHint: vi.fn<() => Promise<QuizHintResult>>(),
+    evaluateQuiz: vi.fn<() => Promise<QuizAttemptResult>>()
+  };
+
+  const progressServiceMock = {
+    syncQuizState: vi.fn(),
+    getProgressPercent: vi.fn(() => 25),
+    isQuizUnlocked: vi.fn(() => true),
+    getNextUnlockedIncompleteChapter: vi.fn<(currentTraining: Training) => TrainingChapter | null>(() => null),
+    getLastQuizResult: vi.fn(() => ({ taken: false, score: null, baseScore: null, status: null })),
+    hasPassedQuiz: vi.fn(() => false),
+    getQuizAttempts: vi.fn(() => 0),
+    shouldRevealQuizAnswers: vi.fn(() => false),
+    isChapterUnlocked: vi.fn((currentTraining: Training, chapterNumber: number) => chapterNumber === 1),
+    isChapterCompleted: vi.fn(() => false),
+    markChapterCompleted: vi.fn(),
+    recordQuizAttempt: vi.fn(() => ({
+      quizAttempts: 1,
+      quizPassed: false,
+      revealAnswers: false,
+      quizTaken: true,
+      lastQuizScore: 0,
+      lastQuizBaseScore: 0,
+      lastQuizStatus: 'failed'
+    }))
+  };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+
+    routeParams$ = new BehaviorSubject({ slug: training.slug, chapterId: '1' });
+
+    dataServiceMock.getPublishedTrainingBySlug.mockResolvedValue(training);
+    dataServiceMock.getQuizByCourseTitle.mockResolvedValue(quiz);
+    dataServiceMock.getQuizQuestions.mockReturnValue(questions);
+    dataServiceMock.getQuizHint.mockResolvedValue({
+      quizId: quiz.id,
+      questionId: 'q1',
+      hint: 'Think about the rule before choosing.',
+      hintLevel: 1,
+      remainingHints: 2,
+      source: 'AI'
+    });
+    dataServiceMock.evaluateQuiz.mockResolvedValue({
+      correctAnswers: 1,
+      totalQuestions: 1,
+      baseScore: 100,
+      earnedWeight: 2,
+      totalWeight: 2,
+      bonusPoints: 0,
+      penaltyPoints: 0,
+      score: 100,
+      passed: true,
+      review: [],
+      emailNotification: {
+        recipient: 'student@example.com',
+        subject: 'Quiz result',
+        preview: 'You passed.',
+        callToAction: 'Keep learning',
+        highlights: ['Passed'],
+        delivered: true,
+        deliveryMode: 'SIMULATED',
+        statusMessage: 'Prepared successfully'
+      }
+    });
+
+    await TestBed.configureTestingModule({
+      imports: [ChapterDetailComponent],
+      providers: [
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { params: routeParams$.asObservable() } },
+        { provide: DataService, useValue: dataServiceMock },
+        { provide: LearningProgressService, useValue: progressServiceMock }
+      ]
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(ChapterDetailComponent);
+    component = fixture.componentInstance;
+    router = TestBed.inject(Router);
+    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+
+    await fixture.whenStable();
+    fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    fixture.destroy();
+    localStorage.clear();
+  });
+
+  function prepareQuizState() {
+    component.training.set(training);
+    component.currentChapter.set(null);
+    component.isQuizStep.set(true);
+    component.quiz.set(quiz);
+    component.questions.set(questions);
+    component.selectedAnswers.set(Array(questions.length).fill(-1));
+    component.quizSubmitted.set(false);
+    component.quizPassed.set(false);
+    component.quizAttempts.set(0);
+    component.learnerEmail.set('');
+    component.learnerEmailError.set('');
+    component.questionHints.set({});
+    component.hintLoadingQuestionId.set(null);
+    component.hintError.set('');
+    component.antiCheatTriggered.set(false);
+    component.antiCheatMessage.set('');
+  }
+
+  it('loads the requested chapter and linked quiz data', () => {
+    expect(dataServiceMock.getPublishedTrainingBySlug).toHaveBeenCalledWith(training.slug);
+    expect(dataServiceMock.getQuizByCourseTitle).toHaveBeenCalledWith(training.title);
+    expect(progressServiceMock.syncQuizState).toHaveBeenCalledWith(training.slug, quiz.id);
+    expect(component.training()?.slug).toBe(training.slug);
+    expect(component.currentChapter()?.number).toBe(1);
+    expect(component.isQuizStep()).toBe(false);
+  });
+
+  it('marks the current chapter as completed and navigates to the next unlocked chapter', async () => {
+    progressServiceMock.getNextUnlockedIncompleteChapter.mockImplementation(
+      () => training.chaptersData?.[1] ?? null
+    );
+
+    await component.markCurrentChapterCompleted();
+
+    expect(progressServiceMock.markChapterCompleted).toHaveBeenCalledWith(training.slug, 1);
+    expect(router.navigate).toHaveBeenCalledWith(['/courses', training.slug, 2]);
+  });
+
+  it('blocks quiz submission when the learner email is invalid', async () => {
+    prepareQuizState();
+    component.selectAnswer(0, 1);
+    component.learnerEmail.set('invalid-email');
+
+    await component.submitQuiz();
+
+    expect(component.learnerEmailError()).toContain('Enter a valid email');
+    expect(dataServiceMock.evaluateQuiz).not.toHaveBeenCalled();
+  });
+
+  it('requests and stores a hint for the active quiz question', async () => {
+    prepareQuizState();
+    component.selectAnswer(0, 2);
+    await component.requestHint(0);
+
+    expect(dataServiceMock.getQuizHint).toHaveBeenCalledWith(quiz.id, 'q1', 1, 2);
+    expect(component.currentHint('q1')?.hint).toBe('Think about the rule before choosing.');
+    expect(component.hintError()).toBe('');
+    expect(component.isHintLoading('q1')).toBe(false);
+  });
+
+  it('fails the attempt automatically when the window loses focus during the quiz', async () => {
+    prepareQuizState();
+    (component as any).startQuizMonitoring();
+
+    window.dispatchEvent(new Event('blur'));
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(progressServiceMock.recordQuizAttempt).toHaveBeenCalledWith(training.slug, false, 0, 0);
+    expect(component.quizSubmitted()).toBe(true);
+    expect(component.antiCheatTriggered()).toBe(true);
+    expect(component.antiCheatMessage()).toContain('Leaving the quiz window is not allowed');
+  });
+});

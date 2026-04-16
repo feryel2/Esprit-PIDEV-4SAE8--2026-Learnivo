@@ -1,0 +1,533 @@
+QUESTIONS POSSIBLES DU PROF BASEES SUR LA GRILLE
+================================================
+
+Objectif
+--------
+Ce fichier regroupe des questions probables que le professeur peut poser pendant la soutenance, en lien avec la grille d'evaluation.
+Pour chaque question, tu trouveras :
+- ce qu'il faut repondre
+- l'explication technique
+- ou se trouve le code a montrer
+
+
+AA1 - LOGIQUE METIER ET ANALYSE
+===============================
+
+1. Quelle est la logique metier avancee de votre projet, au-dela du simple CRUD ?
+-----------------------------------------------------------------------------
+Reponse attendue
+Notre projet ne fait pas seulement du CRUD. Il integre de vraies regles metier :
+- progression par chapitres
+- deverrouillage du quiz uniquement apres completion des chapitres
+- calcul de progression en pourcentage
+- gestion de publication des quiz
+- archivage automatique d'anciens quiz publies
+- evaluation avec score pondere
+- hints IA avec fallback local
+- synchronisation cours/quiz entre microservices
+
+Explication
+Un projet CRUD simple se limite a creer, lire, modifier et supprimer. Ici, il y a des contraintes metier et des comportements automatiques.
+
+Ou montrer le code
+- backend/course-service/src/main/java/com/esprit/courseservice/service/CourseService.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/service/QuizService.java
+- frontend/src/app/services/learning-progress.service.ts
+- frontend/src/app/pages/chapter-detail.component.ts
+
+
+2. Comment avez-vous implemente la progression pedagogique par chapitres ?
+-------------------------------------------------------------------------
+Reponse attendue
+La progression est geree dans le frontend avec un service dedie. Un chapitre n'est accessible que si le precedent est complete. Le quiz est deverrouille seulement quand tous les chapitres sont termines.
+
+Explication
+La logique se trouve dans LearningProgressService avec des methodes comme :
+- isChapterUnlocked(...)
+- isQuizUnlocked(...)
+- markChapterCompleted(...)
+- getProgressPercent(...)
+
+Ou montrer le code
+- frontend/src/app/services/learning-progress.service.ts
+- frontend/src/app/services/learning-progress.service.spec.ts
+
+
+3. Comment calculez-vous le pourcentage de progression ?
+-------------------------------------------------------
+Reponse attendue
+Le projet separe la progression des chapitres et la progression finale avec quiz.
+Les chapitres representent 50 pour cent de la progression, puis le quiz complete la progression jusqu'a 100 pour cent.
+
+Explication
+Dans le service, si tous les chapitres sont completes mais que le quiz n'est pas encore reussi, la progression peut etre 80 pour cent en cas d'echec ou 100 pour cent en cas de reussite.
+
+Ou montrer le code
+- frontend/src/app/services/learning-progress.service.ts
+
+
+4. Quelle est la logique metier du module quiz ?
+-----------------------------------------------
+Reponse attendue
+Le module quiz integre plusieurs regles :
+- un quiz publie doit avoir une date de publication
+- les identifiants des questions doivent etre uniques
+- un seul quiz publie actif par cours
+- calcul du score selon les poids des questions
+- email recapitulatif apres tentative
+
+Explication
+Le service QuizService ne se contente pas d'enregistrer un quiz, il controle sa validite et son comportement metier.
+
+Ou montrer le code
+- backend/quiz-service/src/main/java/com/esprit/quizservice/service/QuizService.java
+- backend/quiz-service/src/test/java/com/esprit/quizservice/service/QuizServiceTest.java
+
+
+5. Pourquoi dites-vous que votre logique metier est complexe ?
+--------------------------------------------------------------
+Reponse attendue
+Parce qu'elle combine plusieurs niveaux :
+- logique de validation
+- logique de securite
+- logique inter-services
+- logique de progression utilisateur
+- logique de publication et synchronisation
+- logique d'evaluation avec poids et hints
+
+Ou montrer le code
+- backend/course-service/src/main/java/com/esprit/courseservice/service/CourseService.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/service/QuizService.java
+- frontend/src/app/pages/chapter-detail.component.ts
+
+
+AA2 - ARCHITECTURE LOGICIELLE
+=============================
+
+6. Pourquoi avez-vous choisi une architecture microservices ?
+-------------------------------------------------------------
+Reponse attendue
+Nous avons choisi les microservices pour separer les responsabilites :
+- user-service pour l'authentification
+- course-service pour les cours
+- quiz-service pour les quiz
+- api-gateway comme point d'entree unique
+- discovery-server pour l'enregistrement des services
+
+Explication
+Cette separation facilite la maintenance, l'evolution du projet et la communication entre modules.
+
+Ou montrer le code
+- backend/README.md
+- backend/api-gateway
+- backend/discovery-server
+- backend/course-service
+- backend/quiz-service
+- backend/user-service
+
+
+7. A quoi sert l'API Gateway dans votre projet ?
+-----------------------------------------------
+Reponse attendue
+L'API Gateway est le point d'entree unique pour le frontend. Il centralise :
+- le routage vers les bons microservices
+- la securite
+- la gestion des acces
+
+Explication
+Le frontend n'appelle pas directement chaque service, il passe par le gateway.
+
+Ou montrer le code
+- backend/api-gateway/src/main/java/com/esprit/apigateway/config/SecurityConfig.java
+- backend/README.md
+
+
+8. Pourquoi OpenFeign est-il utile dans votre projet ?
+------------------------------------------------------
+Reponse attendue
+OpenFeign permet au course-service d'appeler le quiz-service comme s'il appelait une simple methode Java.
+Il est utilise pour garder la coherence entre les cours et les quiz.
+
+Exemple
+- si le titre d'un cours change, il faut renommer le titre associe dans les quiz
+- si un cours est supprime, il faut supprimer les quiz lies
+
+Ou montrer le code
+- backend/course-service/src/main/java/com/esprit/courseservice/service/QuizServiceFeignClient.java
+- backend/course-service/src/main/java/com/esprit/courseservice/service/QuizServiceClient.java
+- backend/course-service/src/main/java/com/esprit/courseservice/service/CourseService.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/controller/QuizController.java
+
+
+9. Comment OpenFeign est-il active dans le projet ?
+---------------------------------------------------
+Reponse attendue
+Il faut trois elements :
+- la dependance Maven
+- l'annotation @EnableFeignClients
+- une interface @FeignClient
+
+Ou montrer le code
+- backend/course-service/pom.xml
+- backend/course-service/src/main/java/com/esprit/courseservice/CourseServiceApplication.java
+- backend/course-service/src/main/java/com/esprit/courseservice/service/QuizServiceFeignClient.java
+
+
+10. Pourquoi utilisez-vous une classe QuizServiceClient en plus de QuizServiceFeignClient ?
+------------------------------------------------------------------------------------------
+Reponse attendue
+QuizServiceClient encapsule les appels Feign et gere les exceptions proprement.
+Cela evite de mettre la logique technique directement dans le service metier.
+
+Ou montrer le code
+- backend/course-service/src/main/java/com/esprit/courseservice/service/QuizServiceClient.java
+
+
+11. Quel est le trajet complet d'un appel OpenFeign dans votre projet ?
+----------------------------------------------------------------------
+Reponse attendue
+Le trajet est :
+1. un admin modifie ou supprime un cours
+2. CourseService detecte le changement
+3. CourseService appelle QuizServiceClient
+4. QuizServiceClient appelle QuizServiceFeignClient
+5. Feign envoie la requete HTTP au quiz-service
+6. QuizController recoit l'appel
+7. QuizService met a jour ou supprime les quiz
+
+Ou montrer le code
+- backend/course-service/src/main/java/com/esprit/courseservice/service/CourseService.java
+- backend/course-service/src/main/java/com/esprit/courseservice/service/QuizServiceClient.java
+- backend/course-service/src/main/java/com/esprit/courseservice/service/QuizServiceFeignClient.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/controller/QuizController.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/service/QuizService.java
+
+
+AA3 - SECURITE ET ACCES
+=======================
+
+12. Comment la securite est-elle geree dans votre projet ?
+---------------------------------------------------------
+Reponse attendue
+La securite repose sur JWT et les roles.
+Le systeme distingue principalement deux roles :
+- STUDENT
+- TEACHER
+
+Les endpoints sensibles sont proteges au niveau du gateway et des services.
+
+Ou montrer le code
+- backend/api-gateway/src/main/java/com/esprit/apigateway/config/SecurityConfig.java
+- backend/course-service/src/main/java/com/esprit/courseservice/config/SecurityConfig.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/config/SecurityConfig.java
+- backend/user-service/src/main/java/com/esprit/userservice/config/SecurityConfig.java
+
+
+13. Pourquoi securiser a la fois le gateway et les microservices ?
+-----------------------------------------------------------------
+Reponse attendue
+Le gateway filtre les acces au niveau global, mais les microservices doivent aussi proteger leurs endpoints pour eviter qu'un service soit appele directement sans controle.
+
+Explication
+C'est une defense en profondeur.
+
+Ou montrer le code
+- backend/api-gateway/src/main/java/com/esprit/apigateway/config/SecurityConfig.java
+- backend/course-service/src/main/java/com/esprit/courseservice/config/SecurityConfig.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/config/SecurityConfig.java
+
+
+14. Quels endpoints sont reserves au role TEACHER ?
+--------------------------------------------------
+Reponse attendue
+Les endpoints CRUD d'administration comme :
+- /api/courses/**
+- /api/quizzes/**
+- /api/users/**
+
+Les endpoints de lecture publique ou certains endpoints apprenants ont des regles differentes.
+
+Ou montrer le code
+- backend/api-gateway/src/main/java/com/esprit/apigateway/config/SecurityConfig.java
+
+
+15. Quels endpoints sont autorises pour STUDENT ?
+------------------------------------------------
+Reponse attendue
+Le role STUDENT peut acceder a certains endpoints fonctionnels :
+- POST /api/courses/recommendations/ai
+- POST /api/quizzes/{id}/evaluate
+- POST /api/quizzes/{id}/hint
+
+Ou montrer le code
+- backend/api-gateway/src/main/java/com/esprit/apigateway/config/SecurityConfig.java
+- backend/course-service/src/main/java/com/esprit/courseservice/config/SecurityConfig.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/config/SecurityConfig.java
+
+
+16. Comment prouvez-vous que la securite fonctionne vraiment ?
+--------------------------------------------------------------
+Reponse attendue
+Nous avons des tests de securite automatiques qui verifient :
+- refus sans authentification
+- refus si role insuffisant
+- acceptation si role correct
+
+Ou montrer le code
+- backend/api-gateway/src/test/java/com/esprit/apigateway/ApiGatewaySecurityTests.java
+- backend/course-service/src/test/java/com/esprit/courseservice/CourseServiceSecurityTests.java
+- backend/quiz-service/src/test/java/com/esprit/quizservice/QuizServiceSecurityTests.java
+
+
+17. Comment le token est-il transmis entre services avec OpenFeign ?
+-------------------------------------------------------------------
+Reponse attendue
+Un RequestInterceptor recupere le header Authorization de la requete entrante et le recopie dans la requete Feign sortante.
+
+Ou montrer le code
+- backend/course-service/src/main/java/com/esprit/courseservice/config/FeignSecurityConfig.java
+
+
+AA4 - PRATIQUES PRO ET TESTS
+============================
+
+18. Comment reconnaissez-vous un test unitaire frontend ?
+---------------------------------------------------------
+Reponse attendue
+Un test unitaire frontend est generalement dans un fichier .spec.ts et utilise :
+- describe
+- it
+- expect
+- beforeEach
+- mocks
+
+Ou montrer le code
+- frontend/src/app/app.component.spec.ts
+- frontend/src/app/services/data.service.spec.ts
+- frontend/src/app/services/learning-progress.service.spec.ts
+- frontend/src/app/pages/chapter-detail.component.spec.ts
+
+
+19. Comment reconnaissez-vous un test unitaire backend ?
+-------------------------------------------------------
+Reponse attendue
+Un test unitaire backend utilise souvent :
+- @Test
+- @Mock
+- @InjectMocks
+- when(...).thenReturn(...)
+- verify(...)
+- assertions JUnit
+
+Ou montrer le code
+- backend/course-service/src/test/java/com/esprit/courseservice/service/CourseServiceTest.java
+- backend/quiz-service/src/test/java/com/esprit/quizservice/service/QuizServiceTest.java
+
+
+20. Quelle est la difference entre un test unitaire et un test d'integration dans votre projet ?
+------------------------------------------------------------------------------------------------
+Reponse attendue
+Le test unitaire isole une classe avec des mocks.
+Le test d'integration charge davantage le contexte Spring ou teste les endpoints avec MockMvc/WebTestClient.
+
+Exemple
+- test unitaire : CourseServiceTest, QuizServiceTest
+- test plus integre : CourseServiceSecurityTests, QuizServiceSecurityTests, ApiGatewaySecurityTests
+
+Ou montrer le code
+- backend/course-service/src/test/java/com/esprit/courseservice/service/CourseServiceTest.java
+- backend/quiz-service/src/test/java/com/esprit/quizservice/service/QuizServiceTest.java
+- backend/course-service/src/test/java/com/esprit/courseservice/CourseServiceSecurityTests.java
+- backend/quiz-service/src/test/java/com/esprit/quizservice/QuizServiceSecurityTests.java
+- backend/api-gateway/src/test/java/com/esprit/apigateway/ApiGatewaySecurityTests.java
+
+
+21. A quoi sert HttpTestingController dans les tests Angular ?
+-------------------------------------------------------------
+Reponse attendue
+Il permet de tester les appels HTTP sans vrai backend.
+Il intercepte la requete, verifie son URL et sa methode, puis renvoie une fausse reponse avec flush(...).
+
+Ou montrer le code
+- frontend/src/app/services/data.service.spec.ts
+- frontend/src/app/services/auth.interceptor.spec.ts
+
+
+22. Pourquoi utilisez-vous des mocks dans les tests backend ?
+------------------------------------------------------------
+Reponse attendue
+Les mocks permettent d'isoler la classe testee.
+Par exemple, on teste CourseService sans utiliser une vraie base de donnees ni le vrai quiz-service.
+
+Ou montrer le code
+- backend/course-service/src/test/java/com/esprit/courseservice/service/CourseServiceTest.java
+- backend/quiz-service/src/test/java/com/esprit/quizservice/service/QuizServiceTest.java
+
+
+23. Quel test montre que votre synchronisation OpenFeign est couverte ?
+----------------------------------------------------------------------
+Reponse attendue
+Dans CourseServiceTest, il y a des tests qui verifient :
+- l'appel renameCourse quand le titre change
+- l'absence d'appel si le titre ne change pas
+- l'appel deleteByCourseTitle lors de la suppression
+
+Ou montrer le code
+- backend/course-service/src/test/java/com/esprit/courseservice/service/CourseServiceTest.java
+
+
+24. Quels tests frontend sont les plus importants dans votre projet ?
+--------------------------------------------------------------------
+Reponse attendue
+Les plus importants sont ceux qui valident la logique utilisateur :
+- progression d'apprentissage
+- recommandation de cours
+- ajout du token Authorization
+- logique du composant de quiz et chapitres
+
+Ou montrer le code
+- frontend/src/app/services/learning-progress.service.spec.ts
+- frontend/src/app/services/data.service.spec.ts
+- frontend/src/app/services/auth.interceptor.spec.ts
+- frontend/src/app/pages/chapter-detail.component.spec.ts
+
+
+25. Comment justifiez-vous vos tests par rapport a la grille ?
+-------------------------------------------------------------
+Reponse attendue
+La grille demande des tests d'integration et des tests unitaires backend/frontend.
+Le projet contient :
+- tests backend JUnit/Mockito
+- tests securite avec MockMvc/WebTestClient
+- tests frontend Angular sur services et composants
+
+Ou montrer le code
+- backend/course-service/src/test
+- backend/quiz-service/src/test
+- backend/api-gateway/src/test
+- frontend/src/app/**/*.spec.ts
+
+
+AA5 - EXCELLENCE ET INNOVATION
+==============================
+
+26. Quelles sont les fonctionnalites innovantes du projet ?
+----------------------------------------------------------
+Reponse attendue
+Les points innovants sont :
+- recommandations IA de cours
+- hints IA pour quiz avec fallback local
+- scoring pondere
+- email recapitulatif
+- microservices avec OpenFeign et Gateway
+
+Ou montrer le code
+- backend/course-service/src/main/java/com/esprit/courseservice/service/CourseAiRecommendationService.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/service/QuizHintService.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/service/QuizService.java
+
+
+27. Pourquoi avez-vous ajoute un fallback local pour l'IA ?
+----------------------------------------------------------
+Reponse attendue
+Le fallback local permet au systeme de continuer a fonctionner meme si le service IA externe est indisponible.
+Cela ameliore la robustesse du projet.
+
+Ou montrer le code
+- backend/course-service/src/main/java/com/esprit/courseservice/service/CourseAiRecommendationService.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/service/QuizHintService.java
+
+
+28. Pourquoi votre projet peut etre considere comme plus qu'un simple CRUD ?
+----------------------------------------------------------------------------
+Reponse attendue
+Parce qu'il combine :
+- logique metier riche
+- architecture microservices
+- securite JWT par roles
+- communication inter-services via OpenFeign
+- tests backend/frontend
+- fonctionnalites IA
+
+Ou montrer le code
+- README.md
+- backend/README.md
+- services metiers course-service et quiz-service
+
+
+QUESTIONS DIRECTES SUR LE CODE
+==============================
+
+29. Montrez-moi ou OpenFeign est declare.
+----------------------------------------
+Reponse courte
+Il est declare dans :
+- backend/course-service/pom.xml
+- backend/course-service/src/main/java/com/esprit/courseservice/CourseServiceApplication.java
+- backend/course-service/src/main/java/com/esprit/courseservice/service/QuizServiceFeignClient.java
+
+
+30. Montrez-moi ou la securite JWT est appliquee.
+------------------------------------------------
+Reponse courte
+Elle est appliquee dans :
+- backend/api-gateway/src/main/java/com/esprit/apigateway/config/SecurityConfig.java
+- backend/course-service/src/main/java/com/esprit/courseservice/config/SecurityConfig.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/config/SecurityConfig.java
+- backend/user-service/src/main/java/com/esprit/userservice/config/SecurityConfig.java
+
+
+31. Montrez-moi un test unitaire backend.
+---------------------------------------
+Reponse courte
+- backend/course-service/src/test/java/com/esprit/courseservice/service/CourseServiceTest.java
+- backend/quiz-service/src/test/java/com/esprit/quizservice/service/QuizServiceTest.java
+
+
+32. Montrez-moi un test frontend.
+--------------------------------
+Reponse courte
+- frontend/src/app/services/learning-progress.service.spec.ts
+- frontend/src/app/services/data.service.spec.ts
+- frontend/src/app/pages/chapter-detail.component.spec.ts
+
+
+33. Montrez-moi un exemple de logique metier metier forte.
+---------------------------------------------------------
+Reponse courte
+- progression par chapitres : frontend/src/app/services/learning-progress.service.ts
+- quiz unique publie par cours : backend/quiz-service/src/main/java/com/esprit/quizservice/service/QuizService.java
+- synchronisation cours/quiz : backend/course-service/src/main/java/com/esprit/courseservice/service/CourseService.java
+
+
+34. Si le professeur demande : "qu'est-ce qui prouve que vous maitrisez le code ?"
+-----------------------------------------------------------------------------------
+Reponse conseillée
+Je peux expliquer :
+- comment un cours mis a jour declenche un appel Feign
+- comment la securite bloque ou autorise un role
+- comment le quiz est evalue avec un score pondere
+- comment les tests valident ces comportements
+
+Fichiers a ouvrir rapidement
+- backend/course-service/src/main/java/com/esprit/courseservice/service/CourseService.java
+- backend/course-service/src/main/java/com/esprit/courseservice/service/QuizServiceFeignClient.java
+- backend/api-gateway/src/main/java/com/esprit/apigateway/config/SecurityConfig.java
+- backend/quiz-service/src/main/java/com/esprit/quizservice/service/QuizService.java
+- backend/course-service/src/test/java/com/esprit/courseservice/service/CourseServiceTest.java
+- frontend/src/app/pages/chapter-detail.component.spec.ts
+
+
+CONSEIL FINAL POUR LA SOUTENANCE
+================================
+
+Ne recite pas seulement les noms des technologies.
+Explique toujours :
+- pourquoi tu l'as utilisee
+- quel probleme elle resout
+- ou est le code
+- quel test prouve que ca marche
+
+Formule simple a reutiliser
+---------------------------
+Nous n'avons pas seulement implemente une fonctionnalite, nous avons aussi securise son acces, teste son comportement et integre cette logique dans une architecture microservices coherente.

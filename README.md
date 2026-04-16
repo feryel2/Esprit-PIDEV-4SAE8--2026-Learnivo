@@ -1,47 +1,51 @@
 # Learnivo
 
-Learnivo is a microservices-based English school management and e-learning platform built in the Esprit PIDEV 4SAE program for 2025-2026.
+Learnivo is a microservices-based English school management and e-learning platform built for the Esprit PIDEV 4SAE 2025-2026 program.
 
 The project combines:
 - course management with chapter-by-chapter progression
 - quiz management with weighted scoring and AI hints
 - AI-powered course recommendations
-- role-based authentication for students and teachers
-- API Gateway and Eureka-based service discovery
+- JWT authentication with role-based access
+- API Gateway routing and Eureka service discovery
 
-## Project Structure
+## Project Overview
 
-### Backend services
+Learnivo is organized around a modern microservices architecture:
+- `backend/discovery-server`: Eureka registry
 - `backend/api-gateway`: single entry point for frontend requests
-- `backend/discovery-server`: Eureka service registry
-- `backend/user-service`: authentication, JWT, user roles
-- `backend/course-service`: course CRUD, analytics, progress, AI recommendations
-- `backend/quiz-service`: quiz CRUD, evaluation, AI hints
-
-### Frontend
+- `backend/user-service`: authentication, JWT, roles, and seeded users
+- `backend/course-service`: course CRUD, chapter progression, analytics, difficulty calculation, AI recommendations
+- `backend/quiz-service`: quiz CRUD, weighted evaluation, publication workflow, hints, email payload
 - `frontend`: Angular application for students and teachers
 
 ## Main Features
 
-### Course module
-- CRUD for courses and chapters
-- progress tracking per course
-- calculated difficulty score and label
-- analytics overview
-- AI-assisted course recommendations with local fallback
+### Course Module
+- course CRUD with chapters and sections
+- chapter-by-chapter learner progression
+- automatic course difficulty calculation
+- analytics overview for course statistics
+- AI-assisted course recommendations with a local fallback strategy
 
-### Quiz module
-- CRUD for quizzes
-- weighted quiz evaluation
-- quiz availability by publication date
+### Quiz Module
+- quiz CRUD with multiple questions
+- weighted scoring based on difficulty
+- publication scheduling for learner availability
 - AI-assisted hints with safe local fallback
-- email summary payload after submission
+- email summary payload after quiz submission
 
 ### Security
-- JWT authentication
+- JWT authentication across services
 - role-based access for `STUDENT` and `TEACHER`
-- protected teacher endpoints for administration
-- learner-only authenticated actions for quiz attempts, quiz hints, and personalized recommendations
+- protected teacher-only administration endpoints
+- authenticated learner endpoints for hints, quiz attempts, and recommendations
+
+### Architecture
+- API Gateway as the unique frontend entry point
+- Eureka-based service discovery
+- OpenFeign communication between microservices
+- Angular frontend connected through the gateway
 
 ## Technical Stack
 
@@ -60,10 +64,18 @@ The project combines:
 - Spring Cloud Netflix Eureka
 - H2 / MySQL
 
+## Default Ports
+
+- `8761`: discovery server
+- `8080`: API Gateway
+- `8081`: course-service
+- `8082`: quiz-service
+- `8083`: user-service
+- `4200`: Angular frontend
+
 ## Demo Accounts
 
-The seeded users are:
-
+Seeded users:
 - Student
   - email: `student@learnivo.local`
   - password: `student123`
@@ -71,21 +83,30 @@ The seeded users are:
   - email: `teacher@learnivo.local`
   - password: `teacher123`
 
+## Prerequisites
+
+Before running the project, make sure you have:
+- Java 17
+- Maven 3.9+
+- Node.js 20+
+- npm 10+
+
 ## How To Run
 
 ### Backend
 
-From the `backend` folder, run the services in this order:
+From the `backend` folder, start the services in this order:
 
 1. discovery server
 2. user service
 3. course service
 4. quiz service
-5. api gateway
+5. API Gateway
 
-Example commands:
+Commands:
 
 ```powershell
+cd backend
 mvn -q -pl discovery-server spring-boot:run
 mvn -q -pl user-service spring-boot:run
 mvn -q -pl course-service spring-boot:run
@@ -98,13 +119,16 @@ mvn -q -pl api-gateway spring-boot:run
 From the `frontend` folder:
 
 ```powershell
+cd frontend
 npm install
 npm run start
 ```
 
+The frontend uses the API Gateway at `http://localhost:8080`.
+
 ## Testing
 
-### Backend tests
+### Backend Tests
 
 ```powershell
 cd backend
@@ -113,14 +137,14 @@ mvn -q -pl quiz-service test
 mvn -q -pl api-gateway test
 ```
 
-### Frontend tests
+### Frontend Tests
 
 ```powershell
 cd frontend
-npm test
+npm test -- --watch=false
 ```
 
-### Frontend production build
+### Frontend Production Build
 
 ```powershell
 cd frontend
@@ -129,24 +153,32 @@ npm run build
 
 ## Architecture Notes
 
-- the frontend calls services through the API Gateway on `http://localhost:8080`
+- the frontend communicates only with the API Gateway
 - service discovery is handled by Eureka
-- course-service communicates with quiz-service through OpenFeign
-- learner progress is handled in the Angular frontend and reinforced by backend quiz/course APIs
+- `course-service` communicates with `quiz-service` using OpenFeign
+- security rules are enforced both at gateway level and service level
+- learner progress is handled in Angular and reinforced by backend quiz and course APIs
 
 ## AI Features
 
-### Quiz hints
+### Quiz Hints
 - endpoint: `POST /api/quizzes/{id}/hint`
 - secured for authenticated `STUDENT` or `TEACHER`
 - uses remote AI when configured
-- falls back to local hint generation if AI is unavailable
+- falls back to local hint generation when AI is unavailable
 
-### Course recommendations
+### Course Recommendations
 - endpoint: `POST /api/courses/recommendations/ai`
 - secured for authenticated `STUDENT` or `TEACHER`
 - uses remote AI ranking when configured
 - falls back to local rule-based recommendation scoring
+
+## Quality and Testing Highlights
+
+- backend unit tests for business rules
+- backend security tests for protected endpoints
+- frontend service tests for authentication, recommendations, and learning progress
+- dedicated microservices for modularity and maintainability
 
 ## Contributors
 
