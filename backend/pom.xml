@@ -23,6 +23,7 @@
 		<module>api-gateway</module>
 		<module>class-service</module>
 		<module>competition-service</module>
+		<module>user-service</module>
 	</modules>
 
 	<properties>

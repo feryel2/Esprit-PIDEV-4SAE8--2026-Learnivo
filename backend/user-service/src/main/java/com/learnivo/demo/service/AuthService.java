@@ -12,8 +12,8 @@ import com.learnivo.demo.enums.UserStatus;
 import com.learnivo.demo.repository.ProfileRepository;
 import com.learnivo.demo.repository.UserRepository;
 import com.learnivo.demo.repository.VerificationTokenRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -26,9 +26,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
     
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
@@ -39,6 +39,22 @@ public class AuthService {
     private final RecaptchaService recaptchaService;
     private final EmailService emailService;
     private final VerificationTokenRepository verificationTokenRepository;
+
+    public AuthService(UserRepository userRepository, ProfileRepository profileRepository, 
+                       PasswordEncoder passwordEncoder, JwtService jwtService, 
+                       AuthenticationManager authenticationManager, UserDetailsServiceImpl userDetailsService, 
+                       RecaptchaService recaptchaService, EmailService emailService, 
+                       VerificationTokenRepository verificationTokenRepository) {
+        this.userRepository = userRepository;
+        this.profileRepository = profileRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.authenticationManager = authenticationManager;
+        this.userDetailsService = userDetailsService;
+        this.recaptchaService = recaptchaService;
+        this.emailService = emailService;
+        this.verificationTokenRepository = verificationTokenRepository;
+    }
 
     @Value("${app.url}")
     private String appUrl;

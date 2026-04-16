@@ -87,4 +87,11 @@ public class CompetitionController {
     public List<Competition> getRecommendations(@RequestParam String email) {
         return competitionService.getRecommendations(email);
     }
+
+    // ── Publication des résultats ────────────────────────────────────────────
+
+    @PostMapping("/{id}/publish")
+    public ResponseEntity<Competition> publishResults(@PathVariable Long id) {
+        return ResponseEntity.ok(competitionService.publishResults(id));
+    }
 }

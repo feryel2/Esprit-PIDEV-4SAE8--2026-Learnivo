@@ -203,7 +203,7 @@ class CompetitionServiceTest {
         when(competitionRepository.save(any())).thenReturn(sampleCompetition);
 
         Participant result = competitionService.submit(1L, "alice@example.com",
-                "https://github.com/alice/project", "My awesome project", null);
+                "https://github.com/alice/project", "My awesome project", null, null);
 
         assertThat(result.getSubmissionUrl()).isEqualTo("https://github.com/alice/project");
         assertThat(result.getSubmissionNotes()).isEqualTo("My awesome project");
@@ -216,7 +216,7 @@ class CompetitionServiceTest {
         sampleCompetition.setStatus(Competition.Status.COMPLETED);
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
 
-        assertThatThrownBy(() -> competitionService.submit(1L, "alice@example.com", "https://github.com", null, null))
+        assertThatThrownBy(() -> competitionService.submit(1L, "alice@example.com", "https://github.com", null, null, null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("closed");
     }
@@ -226,7 +226,7 @@ class CompetitionServiceTest {
     void submit_throwsWhenEmailNotRegistered() {
         when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
 
-        assertThatThrownBy(() -> competitionService.submit(1L, "unknown@example.com", "https://github.com", null, null))
+        assertThatThrownBy(() -> competitionService.submit(1L, "unknown@example.com", "https://github.com", null, null, null))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("No registration");
     }
@@ -248,5 +248,52 @@ class CompetitionServiceTest {
         assertThat(sampleCompetition.getRounds()).isEmpty();
         assertThat(sampleCompetition.getTags()).isEmpty();
         verify(competitionRepository).deleteById(1L);
+    }
+
+    // ── publishResults ──────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("publishResults() sets status to COMPLETED and marks top 3 scorers as WINNER")
+    void publishResults_marksWinners() {
+        Participant p1 = Participant.builder().id(1L).name("P1").score(100).status(Participant.Status.REGISTERED).build();
+        Participant p2 = Participant.builder().id(2L).name("P2").score(90).status(Participant.Status.REGISTERED).build();
+        Participant p3 = Participant.builder().id(3L).name("P3").score(80).status(Participant.Status.REGISTERED).build();
+        Participant p4 = Participant.builder().id(4L).name("P4").score(70).status(Participant.Status.REGISTERED).build();
+        Participant pLost = Participant.builder().id(5L).name("PLost").score(50).status(Participant.Status.REGISTERED).build();
+
+        sampleCompetition.getParticipants().addAll(List.of(p1, p2, p3, p4, pLost));
+
+        when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
+        when(competitionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        competitionService.publishResults(1L);
+
+        assertThat(sampleCompetition.getStatus()).isEqualTo(Competition.Status.COMPLETED);
+        assertThat(sampleCompetition.getResultsPublished()).isTrue();
+
+        assertThat(p1.getStatus()).isEqualTo(Participant.Status.WINNER);
+        assertThat(p2.getStatus()).isEqualTo(Participant.Status.WINNER);
+        assertThat(p3.getStatus()).isEqualTo(Participant.Status.WINNER);
+        assertThat(p4.getStatus()).isEqualTo(Participant.Status.REGISTERED);
+        assertThat(pLost.getStatus()).isEqualTo(Participant.Status.REGISTERED);
+    }
+
+    @Test
+    @DisplayName("publishResults() resets previous winners if re-published")
+    void publishResults_resetsPreviousWinners() {
+        Participant p1 = Participant.builder().id(1L).name("P1").score(10).status(Participant.Status.WINNER).build();
+        Participant p2 = Participant.builder().id(2L).name("P2").score(100).status(Participant.Status.REGISTERED).build();
+
+        sampleCompetition.getParticipants().addAll(List.of(p1, p2));
+
+        when(competitionRepository.findById(1L)).thenReturn(Optional.of(sampleCompetition));
+        when(competitionRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        competitionService.publishResults(1L);
+
+        // p2 is now 1st, p1 is 2nd. Both should be winners now since total < 3.
+        // But if p1 had been a winner before and now dropped out of top 3, it would be reset.
+        assertThat(p1.getStatus()).isEqualTo(Participant.Status.WINNER);
+        assertThat(p2.getStatus()).isEqualTo(Participant.Status.WINNER);
     }
 }

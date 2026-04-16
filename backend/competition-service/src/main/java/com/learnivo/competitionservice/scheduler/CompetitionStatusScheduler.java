@@ -31,26 +31,33 @@ public class CompetitionStatusScheduler {
 
         for (Competition c : all) {
             Competition.Status initialStatus = c.getStatus();
-            Competition.Status targetStatus = initialStatus;
-
-            LocalDateTime start = parseDate(c.getStartDate());
-            LocalDateTime end = parseDate(c.getDeadline());
-
-            if (start != null && now.isBefore(start)) {
-                targetStatus = Competition.Status.UPCOMING;
-            } else if (end != null && now.isAfter(end)) {
-                targetStatus = Competition.Status.COMPLETED;
-            } else {
-                targetStatus = Competition.Status.ONGOING;
-            }
-
-            if (initialStatus != targetStatus) {
-                c.setStatus(targetStatus);
+            Competition.Status newStatus = computeStatus(c, now);
+            if (newStatus != null && newStatus != initialStatus) {
+                c.setStatus(newStatus);
                 competitionRepository.save(c);
                 log.info("Competition '{}' (id={}) changed status: {} -> {}", 
-                        c.getTitle(), c.getId(), initialStatus, targetStatus);
+                        c.getTitle(), c.getId(), initialStatus, newStatus);
             }
         }
+    }
+
+    public Competition.Status computeStatus(Competition c, LocalDateTime now) {
+        if (c.getStatus() == Competition.Status.COMPLETED) {
+            return null;
+        }
+
+        LocalDateTime start = parseDate(c.getStartDate());
+        LocalDateTime end = parseDate(c.getDeadline());
+
+        if (end != null && now.isAfter(end)) {
+            return Competition.Status.COMPLETED;
+        } else if (start != null && now.isAfter(start) && (end == null || now.isBefore(end))) {
+            if (c.getStatus() == Competition.Status.UPCOMING) {
+                return Competition.Status.ONGOING;
+            }
+        }
+
+        return null;
     }
 
     /** Parses an ISO date string, handling both LocalDateTime and ZonedDateTime formats */

@@ -67,34 +67,46 @@ public class CompetitionEmailService {
         String dateToUse = null;
         String eventLabel = "";
 
-        // Prioritize deadline since it is the most critical date for registrants
-        if (competition.getDeadline() != null && !competition.getDeadline().isBlank()) {
-            dateToUse = competition.getDeadline();
-            eventLabel = "the deadline";
-        } else if (competition.getStartDate() != null && !competition.getStartDate().isBlank()) {
+        // Prioritize startDate for the "Mission Commences" countdown
+        if (competition.getStartDate() != null && !competition.getStartDate().isBlank()) {
             dateToUse = competition.getStartDate();
             eventLabel = "the competition starts";
+        } else if (competition.getDeadline() != null && !competition.getDeadline().isBlank()) {
+            dateToUse = competition.getDeadline();
+            eventLabel = "the registration deadline";
         }
 
         if (dateToUse != null) {
             try {
-                java.time.LocalDateTime dateObj;
+                java.time.ZonedDateTime targetDate;
                 if (dateToUse.endsWith("Z") || dateToUse.contains("+")) {
-                    dateObj = java.time.ZonedDateTime.parse(dateToUse).toLocalDateTime();
+                    targetDate = java.time.ZonedDateTime.parse(dateToUse);
                 } else {
-                    dateObj = java.time.LocalDateTime.parse(dateToUse);
+                    targetDate = java.time.LocalDateTime.parse(dateToUse).atZone(java.time.ZoneId.systemDefault());
                 }
                 
-                // Compare dates without time to get exact calendar days remaining
-                long days = java.time.temporal.ChronoUnit.DAYS.between(
-                        java.time.LocalDate.now(), 
-                        dateObj.toLocalDate()
-                );
+                java.time.ZonedDateTime now = java.time.ZonedDateTime.now();
+                java.time.Duration duration = java.time.Duration.between(now, targetDate);
                 
-                if (days > 0) {
-                    countdownMsg = "<div style=\"background:#e0e7ff;border:1px solid #a5b4fc;border-radius:12px;padding:16px;margin:20px 0;text-align:center;\"><p style=\"margin:0;font-weight:700;color:#4338ca;\">⏳ Reminder: Only " + days + " days left until " + eventLabel + "!</p></div>";
-                } else if (days == 0) {
-                    countdownMsg = "<div style=\"background:#ef4444;border:1px solid #fca5a5;border-radius:12px;padding:16px;margin:20px 0;text-align:center;\"><p style=\"margin:0;font-weight:700;color:#991b1b;\">🚨 The deadline is TODAY! Best of luck!</p></div>";
+                if (!duration.isNegative()) {
+                    long days = duration.toDays();
+                    long hours = duration.toHoursPart();
+                    long minutes = duration.toMinutesPart();
+                    long seconds = duration.toSecondsPart();
+
+                    String timeStr = String.format("%02d Days : %02d Hours : %02d Mins : %02d Secs", days, hours, minutes, seconds);
+                    
+                    countdownMsg = """
+                        <div style="background:#0f172a;border:1px solid #1e293b;border-radius:20px;padding:32px;margin:32px 0;text-align:center;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);">
+                            <p style="margin:0 0 16px;font-size:11px;font-weight:900;color:#2dd4bf;text-transform:uppercase;letter-spacing:2px;">🚀 Mission Commences In</p>
+                            <div style="display:inline-block;">
+                                <span style="font-family:'Courier New',Courier,monospace;font-size:28px;font-weight:900;color:white;letter-spacing:1px;">%s</span>
+                            </div>
+                            <p style="margin:16px 0 0;font-size:12px;color:#64748b;font-style:italic;">Target: %s</p>
+                        </div>
+                        """.formatted(timeStr, eventLabel);
+                } else {
+                    countdownMsg = "<div style=\"background:#fef2f2;border:1px solid #fee2e2;border-radius:12px;padding:16px;margin:20px 0;text-align:center;\"><p style=\"margin:0;font-weight:700;color:#991b1b;\">🚨 The event has already begun! Jump in now!</p></div>";
                 }
             } catch (Exception e) {
                 log.warn("[EMAIL] Could not parse date for countdown: {}", e.getMessage());

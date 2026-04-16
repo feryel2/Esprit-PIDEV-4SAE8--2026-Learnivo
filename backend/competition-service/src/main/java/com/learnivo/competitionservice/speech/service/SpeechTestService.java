@@ -26,19 +26,63 @@ public class SpeechTestService {
     // ── Seed sentences on startup ─────────────────────────────────────────────
     @PostConstruct
     public void seedSentences() {
-        if (sentenceRepo.count() > 0) return;
+        if (sentenceRepo.count() < 40) {
+            sentenceRepo.deleteAll();
+        } else {
+            return;
+        }
 
         List<SpeechSentence> sentences = List.of(
+            // EASY (15 sentences)
             new SpeechSentence(null, "The quick brown fox jumps over the lazy dog.", "EASY", "pronunciation"),
             new SpeechSentence(null, "She sells sea shells by the sea shore.", "EASY", "pronunciation"),
             new SpeechSentence(null, "How much wood would a woodchuck chuck?", "EASY", "pronunciation"),
             new SpeechSentence(null, "I would like to improve my English speaking skills.", "EASY", "grammar"),
             new SpeechSentence(null, "Learning a new language opens many doors.", "EASY", "vocabulary"),
+            new SpeechSentence(null, "Hello, how are you doing today?", "EASY", "vocabulary"),
+            new SpeechSentence(null, "My favorite color is blue because it reminds me of the ocean.", "EASY", "vocabulary"),
+            new SpeechSentence(null, "I usually drink coffee in the morning to wake up.", "EASY", "grammar"),
+            new SpeechSentence(null, "He likes to play football with his friends on the weekend.", "EASY", "grammar"),
+            new SpeechSentence(null, "We went to the park and ate some ice cream.", "EASY", "pronunciation"),
+            new SpeechSentence(null, "Can you please pass me the salt and pepper?", "EASY", "vocabulary"),
+            new SpeechSentence(null, "Their house is located near the beautiful mountains.", "EASY", "pronunciation"),
+            new SpeechSentence(null, "I need to buy some groceries from the supermarket.", "EASY", "vocabulary"),
+            new SpeechSentence(null, "It is very important to get enough sleep every night.", "EASY", "pronunciation"),
+            new SpeechSentence(null, "My dog loves to chase after tennis balls in the garden.", "EASY", "grammar"),
+
+            // MEDIUM (15 sentences)
             new SpeechSentence(null, "The weather forecast predicts heavy rain this evening.", "MEDIUM", "vocabulary"),
             new SpeechSentence(null, "Communication skills are essential in today's world.", "MEDIUM", "grammar"),
             new SpeechSentence(null, "Technology has transformed the way we interact with each other.", "MEDIUM", "vocabulary"),
-            new SpeechSentence(null, "The development of artificial intelligence raises ethical questions.", "HARD", "vocabulary"),
-            new SpeechSentence(null, "Perseverance and dedication are the keys to achieving your goals.", "HARD", "pronunciation")
+            new SpeechSentence(null, "Although it was raining heavily, we decided to continue our journey.", "MEDIUM", "grammar"),
+            new SpeechSentence(null, "Many different species of birds migrate to the south during the winter.", "MEDIUM", "vocabulary"),
+            new SpeechSentence(null, "I have been working on this difficult project for three consecutive weeks.", "MEDIUM", "grammar"),
+            new SpeechSentence(null, "Environmental protection is a critical issue that requires global cooperation.", "MEDIUM", "vocabulary"),
+            new SpeechSentence(null, "If I had known you were coming, I would have prepared a delicious dinner.", "MEDIUM", "grammar"),
+            new SpeechSentence(null, "The remarkable architecture of the ancient ruin fascinated the archaeologists.", "MEDIUM", "pronunciation"),
+            new SpeechSentence(null, "Effective leadership involves listening to your team and providing constructive feedback.", "MEDIUM", "pronunciation"),
+            new SpeechSentence(null, "The symphony orchestra performed a magnificent rendition of Beethoven's ninth.", "MEDIUM", "vocabulary"),
+            new SpeechSentence(null, "In spite of the numerous challenges, the ambitious startup succeeded surprisingly well.", "MEDIUM", "grammar"),
+            new SpeechSentence(null, "She confidently delivered an inspiring presentation to the board of directors.", "MEDIUM", "pronunciation"),
+            new SpeechSentence(null, "Financial literacy plays a crucial role in maintaining personal economic stability.", "MEDIUM", "vocabulary"),
+            new SpeechSentence(null, "Reading extensive amounts of literature significantly improves your cognitive abilities.", "MEDIUM", "grammar"),
+
+            // HARD (15 sentences)
+            new SpeechSentence(null, "The development of artificial intelligence raises complex ethical questions.", "HARD", "vocabulary"),
+            new SpeechSentence(null, "Perseverance and dedication are undeniably the fundamental keys to achieving your ultimate goals.", "HARD", "pronunciation"),
+            new SpeechSentence(null, "To adequately comprehend quantum mechanics requires an exceptional grasp of advanced mathematical paradigms.", "HARD", "vocabulary"),
+            new SpeechSentence(null, "The paradoxical nature of the protagonist’s actions left the bewildered audience utterly spellbound.", "HARD", "pronunciation"),
+            new SpeechSentence(null, "Having meticulously scrutinized the empirical evidence, the relentless researchers hypothesized an unprecedented phenomenon.", "HARD", "grammar"),
+            new SpeechSentence(null, "She sells seashells by the seashore; the shells she sells are surely seashells.", "HARD", "pronunciation"),
+            new SpeechSentence(null, "An instantaneous, simultaneous occurrence miraculously synchronized the seemingly anomalous astronomical events.", "HARD", "vocabulary"),
+            new SpeechSentence(null, "Unequivocally, the bureaucratic administration continuously exacerbates the infrastructural vulnerabilities of the metropolis.", "HARD", "pronunciation"),
+            new SpeechSentence(null, "Philosophically speaking, existentialism heavily emphasizes individual existence, freedom, and arbitrary choice.", "HARD", "vocabulary"),
+            new SpeechSentence(null, "Had the distinguished committee thoroughly evaluated the multifaceted proposal, the catastrophic repercussions might have been entirely circumvented.", "HARD", "grammar"),
+            new SpeechSentence(null, "The sixth sick sheik's sixth sheep's sick.", "HARD", "pronunciation"),
+            new SpeechSentence(null, "A multifaceted geopolitical strategy is indispensable for mitigating the ramifications of international economic volatility.", "HARD", "vocabulary"),
+            new SpeechSentence(null, "I thought a thought, but the thought I thought wasn't the thought I thought I thought.", "HARD", "pronunciation"),
+            new SpeechSentence(null, "Incontrovertible proof of extraterrestrial microorganisms could profoundly orchestrate a paradigm shift in contemporary astrobiology.", "HARD", "vocabulary"),
+            new SpeechSentence(null, "Notwithstanding his idiosyncratic temperamental fluctuations, the eccentric virtuoso unequivocally revolutionized classical symphony composition.", "HARD", "grammar")
         );
 
         sentenceRepo.saveAll(sentences);
@@ -141,11 +185,61 @@ public class SpeechTestService {
         String[] transWords = normalize(transcript).split("\\s+");
         List<SpeechEvaluateResponse.WordResult> results = new ArrayList<>();
 
-        for (int i = 0; i < origWords.length; i++) {
-            String expected = origWords[i];
-            String heard    = i < transWords.length ? transWords[i] : "";
-            boolean correct = expected.equals(heard);
-            results.add(new SpeechEvaluateResponse.WordResult(expected, heard, correct));
+        if (origWords.length == 0 || (origWords.length == 1 && origWords[0].isEmpty())) {
+            return results;
+        }
+        if (transWords.length == 0 || (transWords.length == 1 && transWords[0].isEmpty())) {
+            for (String w : origWords) {
+                results.add(new SpeechEvaluateResponse.WordResult(w, "", false));
+            }
+            return results;
+        }
+
+        int m = origWords.length;
+        int n = transWords.length;
+        int[][] dp = new int[m + 1][n + 1];
+
+        for (int i = 0; i <= m; i++) dp[i][0] = i;
+        for (int j = 0; j <= n; j++) dp[0][j] = j;
+
+        for (int i = 1; i <= m; i++) {
+            for (int j = 1; j <= n; j++) {
+                if (origWords[i - 1].equals(transWords[j - 1])) {
+                    dp[i][j] = dp[i - 1][j - 1];
+                } else {
+                    dp[i][j] = 1 + Math.min(dp[i - 1][j - 1], 
+                                   Math.min(dp[i - 1][j], dp[i][j - 1]));
+                }
+            }
+        }
+
+        int i = m, j = n;
+        while (i > 0 || j > 0) {
+            if (i > 0 && j > 0 && origWords[i - 1].equals(transWords[j - 1])) {
+                results.add(0, new SpeechEvaluateResponse.WordResult(origWords[i - 1], transWords[j - 1], true));
+                i--;
+                j--;
+            } else {
+                int sub = (i > 0 && j > 0) ? dp[i - 1][j - 1] : Integer.MAX_VALUE;
+                int del = (i > 0) ? dp[i - 1][j] : Integer.MAX_VALUE;
+                int ins = (j > 0) ? dp[i][j - 1] : Integer.MAX_VALUE;
+
+                int min = Math.min(sub, Math.min(del, ins));
+
+                if (min == sub && dp[i][j] == sub + 1) {
+                    results.add(0, new SpeechEvaluateResponse.WordResult(origWords[i - 1], transWords[j - 1], false));
+                    i--;
+                    j--;
+                } else if (min == del && dp[i][j] == del + 1) {
+                    results.add(0, new SpeechEvaluateResponse.WordResult(origWords[i - 1], "", false));
+                    i--;
+                } else if (min == ins && dp[i][j] == ins + 1) {
+                    j--;
+                } else {
+                    if (i > 0) i--;
+                    else j--;
+                }
+            }
         }
         return results;
     }

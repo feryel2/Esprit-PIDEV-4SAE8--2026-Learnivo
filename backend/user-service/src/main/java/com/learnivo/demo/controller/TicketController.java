@@ -20,10 +20,13 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tickets")
-@RequiredArgsConstructor
 public class TicketController {
     
     private final TicketService ticketService;
+
+    public TicketController(TicketService ticketService) {
+        this.ticketService = ticketService;
+    }
     
     @PostMapping
     public ResponseEntity<TicketResponseDTO> createTicket(

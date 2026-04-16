@@ -5,12 +5,21 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import {
   LucideAngularModule, Trophy, Calendar, ArrowRight, Users, Clock,
   CheckCircle2, Flag, Tag, X, AlertTriangle, ChevronRight, Star, Zap,
-  ThumbsUp, ThumbsDown
+  ThumbsUp, ThumbsDown, Medal, XCircle, Award
 } from 'lucide-angular';
-import { DataService, Competition, VoteStats, Announcement } from '../services/data.service';
+import { DataService, Competition, VoteStats, Announcement, Exercise } from '../services/data.service';
 import { AuthService } from '../services/auth.service';
 
 type ModalStep = 'form' | 'confirm' | 'success';
+
+interface PracticeState {
+  exercise: Exercise;
+  currentTask: number;
+  selectedAnswers: (number | null)[];
+  confirmed: boolean[];
+  finished: boolean;
+  score: number;
+}
 
 @Component({
   selector: 'app-competition-detail',
@@ -74,6 +83,9 @@ type ModalStep = 'form' | 'confirm' | 'success';
                     'bg-orange-500': comp()!.status === 'upcoming',
                     'bg-gray-500': comp()!.status === 'completed'
                   }" class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest text-white">{{ comp()!.status }}</span>
+                  <span class="px-3 py-1 bg-red-600 rounded-full text-[10px] font-black uppercase tracking-widest text-white flex items-center gap-1 shadow-lg shadow-red-600/20">
+                    <lucide-icon [name]="Trophy" [size]="10"></lucide-icon> High Difficulty
+                  </span>
                   <span class="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-[10px] font-black uppercase tracking-widest text-white">{{ comp()!.category }}</span>
                   @for (tag of (comp()!.tags || []); track tag) {
                     <span class="px-2 py-0.5 bg-white/10 backdrop-blur-sm rounded-full text-[9px] font-bold text-white/80">#{{ tag }}</span>
@@ -225,7 +237,7 @@ type ModalStep = 'form' | 'confirm' | 'success';
               </div>
 
               <!-- Rounds Timeline -->
-              @if ((comp()!.rounds || []).length > 0) {
+              @if (alreadyRegistered() && (comp()!.rounds || []).length > 0) {
                 <div class="bg-white rounded-3xl border border-border p-8 shadow-sm space-y-6">
                   <h2 class="text-2xl font-extrabold flex items-center gap-3">
                     <lucide-icon [name]="Flag" [size]="22" class="text-teal-600"></lucide-icon>
@@ -264,7 +276,7 @@ type ModalStep = 'form' | 'confirm' | 'success';
               }
 
               <!-- Rules -->
-              @if (comp()!.rules) {
+              @if (alreadyRegistered() && comp()!.rules) {
                 <div class="bg-white rounded-3xl border border-border p-8 shadow-sm space-y-4">
                   <h2 class="text-2xl font-extrabold">Rules & Guidelines</h2>
                   <div class="space-y-3">
@@ -279,70 +291,193 @@ type ModalStep = 'form' | 'confirm' | 'success';
               }
 
               <!-- News Feed -->
-              <div class="bg-white rounded-3xl border border-border p-8 shadow-sm space-y-6">
-                <h2 class="text-2xl font-extrabold flex items-center gap-3">
-                  📢 News Feed
-                  @if (announcements().length > 0) {
-                    <span class="px-2.5 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-black">{{ announcements().length }}</span>
-                  }
-                </h2>
-
-                @if (announcements().length === 0) {
-                  <div class="flex flex-col items-center justify-center py-10 text-muted-foreground gap-3">
-                    <span class="text-4xl opacity-30">📭</span>
-                    <p class="text-sm font-medium">No announcements yet. Check back soon!</p>
-                  </div>
-                }
-
-                <div class="space-y-4">
-                  @for (a of announcements(); track a.id) {
-                    <div class="flex gap-4 p-5 rounded-2xl border"
-                         [ngClass]="{
-                           'bg-blue-50 border-blue-200':   a.type === 'INFO',
-                           'bg-yellow-50 border-yellow-200': a.type === 'REMINDER',
-                           'bg-teal-50 border-teal-200':   a.type === 'RESULT',
-                           'bg-red-50 border-red-200':     a.type === 'ALERT'
-                         }">
-                      <span class="text-2xl shrink-0 mt-0.5">
-                        {{ a.type === 'INFO' ? 'ℹ️' : a.type === 'REMINDER' ? '⏰' : a.type === 'RESULT' ? '🏆' : '🚨' }}
-                      </span>
-                      <div class="flex-1 space-y-1">
-                        <div class="flex items-center justify-between gap-2 flex-wrap">
-                          <p class="font-black text-sm">{{ a.title }}</p>
-                          <span class="text-[10px] font-bold text-muted-foreground">{{ a.createdAt | date:'MMM d, y · HH:mm' }}</span>
-                        </div>
-                        <p class="text-sm text-foreground/80 leading-relaxed">{{ a.content }}</p>
-                      </div>
-                    </div>
-                  }
-                </div>
-              </div>
-
-              <!-- Leaderboard (if results published) -->
-              @if (comp()!.resultsPublished && (comp()!.participants || []).length > 0) {
+              @if (alreadyRegistered()) {
                 <div class="bg-white rounded-3xl border border-border p-8 shadow-sm space-y-6">
                   <h2 class="text-2xl font-extrabold flex items-center gap-3">
-                    <lucide-icon [name]="Star" [size]="22" class="text-yellow-500"></lucide-icon>
-                    Leaderboard
+                    📢 News Feed
+                    @if (announcements().length > 0) {
+                      <span class="px-2.5 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-black">{{ announcements().length }}</span>
+                    }
                   </h2>
-                  <div class="space-y-3">
-                    @for (p of getSortedParticipants(); track p.id; let i = $index) {
-                      <div class="flex items-center gap-4 p-4 rounded-2xl"
-                           [ngClass]="i === 0 ? 'bg-yellow-50 border border-yellow-200' : i === 1 ? 'bg-gray-50 border border-gray-200' : i === 2 ? 'bg-orange-50 border border-orange-200' : 'border border-border'">
-                        <span class="text-xl w-8 text-center">{{ i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '#' + (i+1) }}</span>
-                        <div class="w-9 h-9 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-xs shrink-0">{{ p.name.charAt(0) }}</div>
-                        <div class="flex-1">
-                          <p class="font-bold text-sm">{{ p.name }}</p>
-                          <p class="text-xs text-muted-foreground capitalize">{{ p.status }}</p>
+
+                  @if (announcements().length === 0) {
+                    <div class="flex flex-col items-center justify-center py-10 text-muted-foreground gap-3">
+                      <span class="text-4xl opacity-30">📭</span>
+                      <p class="text-sm font-medium">No announcements yet. Check back soon!</p>
+                    </div>
+                  }
+
+                  <div class="space-y-4">
+                    @for (a of announcements(); track a.id) {
+                      <div class="flex gap-4 p-5 rounded-2xl border"
+                           [ngClass]="{
+                             'bg-blue-50 border-blue-200':   a.type === 'INFO',
+                             'bg-yellow-50 border-yellow-200': a.type === 'REMINDER',
+                             'bg-teal-50 border-teal-200':   a.type === 'RESULT',
+                             'bg-red-50 border-red-200':     a.type === 'ALERT'
+                           }">
+                        <span class="text-2xl shrink-0 mt-0.5">
+                          {{ a.type === 'INFO' ? 'ℹ️' : a.type === 'REMINDER' ? '⏰' : a.type === 'RESULT' ? '🏆' : '🚨' }}
+                        </span>
+                        <div class="flex-1 space-y-1">
+                          <div class="flex items-center justify-between gap-2 flex-wrap">
+                            <p class="font-black text-sm">{{ a.title }}</p>
+                            <span class="text-[10px] font-bold text-muted-foreground">{{ a.createdAt | date:'MMM d, y · HH:mm' }}</span>
+                          </div>
+                          <p class="text-sm text-foreground/80 leading-relaxed">{{ a.content }}</p>
                         </div>
-                        @if (p.score !== undefined) {
-                          <span class="font-black text-teal-600 text-sm">{{ p.score }} pts</span>
-                        }
                       </div>
                     }
                   </div>
                 </div>
               }
+
+              <!-- Royal Night & Gold Podium -->
+              @if (comp()!.resultsPublished && (comp()!.participants || []).length > 0) {
+                <div class="royal-night rounded-[3rem] border border-white/10 p-12 shadow-2xl relative overflow-hidden group/podium">
+                  
+                  <!-- Floating Star Particles -->
+                  <div class="absolute inset-0 pointer-events-none overflow-hidden">
+                    <div class="star-particle w-1 h-1 top-1/4 left-1/4" style="animation-delay: 0s"></div>
+                    <div class="star-particle w-1.5 h-1.5 top-1/2 left-1/3" style="animation-delay: 2s"></div>
+                    <div class="star-particle w-1 h-1 top-3/4 left-2/3" style="animation-delay: 1s"></div>
+                    <div class="star-particle w-2 h-2 top-1/3 left-3/4" style="animation-delay: 4s"></div>
+                  </div>
+
+                  <div class="text-center space-y-4 relative z-10 mb-20">
+                    <div class="inline-flex items-center gap-2 bg-white/5 backdrop-blur-md px-4 py-2 rounded-full border border-white/10">
+                      <lucide-icon [name]="Trophy" [size]="20" class="text-amber-400"></lucide-icon>
+                      <span class="text-[10px] font-black text-amber-400 uppercase tracking-[0.4em]">Champions Hall</span>
+                    </div>
+                    <h2 class="text-5xl font-black text-white tracking-tighter">The Winners</h2>
+                    <p class="text-slate-400 text-sm font-medium max-w-md mx-auto">Celebrating the legendary performers who climbed to the summit of this competition.</p>
+                  </div>
+
+                  <!-- The Podium -->
+                  <div class="perspective-2000 w-full pt-10 pb-16 px-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 items-end gap-x-12 gap-y-24 max-w-5xl mx-auto preserve-3d">
+                      
+                      <!-- 2nd Place: Silver -->
+                      <div class="flex flex-col items-center md:order-1 hover-tilt preserve-3d">
+                        @if (getWinners()[1]; as p) {
+                          <div class="relative mb-12">
+                            <div class="aura-silver absolute -inset-4 bg-slate-400/20 blur-2xl rounded-full"></div>
+                            <div class="w-28 h-28 rounded-3xl bg-slate-100 flex items-center justify-center text-slate-900 border-4 border-white shadow-2xl relative z-10">
+                              <span class="text-5xl font-black uppercase tracking-tighter italic">{{ p.name.charAt(0) }}</span>
+                            </div>
+                            <div class="absolute -top-4 -right-4 bg-slate-200 text-slate-800 w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black border-4 border-slate-950 shadow-xl rotate-12 z-20">2nd</div>
+                          </div>
+                          
+                          <div class="text-center mb-10 z-10">
+                            <p class="font-black text-xl text-white tracking-tight">{{ p.name }}</p>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{{ p.score }} PTS</span>
+                          </div>
+
+                          <!-- Silver Platform -->
+                          <div class="w-full h-32 royal-glass rounded-3xl border-b-[12px] border-slate-400/30 flex items-center justify-center relative overflow-hidden group">
+                            <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-slate-400/50 to-transparent"></div>
+                            <lucide-icon [name]="Medal" [size]="48" class="text-slate-400/40 group-hover:scale-125 transition-transform duration-700"></lucide-icon>
+                          </div>
+                        } @else {
+                          <div class="opacity-10 grayscale flex flex-col items-center">
+                            <div class="w-28 h-28 bg-white/10 rounded-3xl mb-12"></div>
+                            <div class="w-full h-32 bg-white/5 rounded-3xl border-b-8 border-white/10"></div>
+                          </div>
+                        }
+                      </div>
+
+                      <!-- 1st Place: Gold -->
+                      <div class="flex flex-col items-center relative z-20 md:order-2 hover-tilt preserve-3d -translate-y-12">
+                        @if (getWinners()[0]; as p) {
+                          <div class="relative mb-16">
+                            <div class="aura-gold absolute -inset-8 bg-amber-400/30 blur-3xl rounded-full"></div>
+                            <div class="w-44 h-44 rounded-[2.5rem] gold-silk flex items-center justify-center text-white border-8 border-amber-200 shadow-[0_30px_60px_-15px_rgba(251,191,36,0.5)] relative z-10">
+                              <span class="text-8xl font-black drop-shadow-2xl uppercase tracking-tighter italic">{{ p.name.charAt(0) }}</span>
+                            </div>
+                            <div class="absolute -top-6 -right-6 bg-amber-400 text-amber-950 w-20 h-20 rounded-[1.5rem] flex items-center justify-center text-3xl font-black border-8 border-amber-200 shadow-2xl rotate-12 z-20">1st</div>
+                          </div>
+                          
+                          <div class="text-center mb-12 z-10">
+                            <p class="font-black text-4xl text-white tracking-tighter leading-none mb-4 italic">{{ p.name }}</p>
+                            <div class="inline-flex items-center gap-2 bg-amber-400 text-amber-950 px-8 py-3 rounded-full font-black text-sm tracking-widest shadow-2xl">
+                              <lucide-icon [name]="Trophy" [size]="18"></lucide-icon>
+                              {{ p.score }} PTS
+                            </div>
+                          </div>
+
+                          <!-- Gold Platform -->
+                          <div class="w-full h-48 royal-glass rounded-[2rem] border-b-[16px] border-amber-500/40 flex flex-col items-center justify-center gap-4 relative overflow-hidden group">
+                             <div class="absolute inset-0 bg-gradient-to-br from-amber-400/10 via-transparent to-orange-400/10 opacity-50"></div>
+                             <lucide-icon [name]="Star" [size]="72" class="text-amber-400 fill-amber-400 animate-pulse relative z-10"></lucide-icon>
+                             <span class="text-amber-400 font-black uppercase tracking-[0.5em] text-[10px] relative z-10">Ultimate Champion</span>
+                             <!-- Shine Sweep -->
+                             <div class="absolute -inset-full h-full w-1/2 z-20 block transform -skew-x-12 bg-gradient-to-r from-transparent via-white/40 to-transparent opacity-40 animate-shine"></div>
+                          </div>
+                        } @else {
+                          <div class="opacity-10 grayscale flex flex-col items-center">
+                            <div class="w-44 h-44 bg-white/10 rounded-[2.5rem] mb-16"></div>
+                            <div class="w-full h-48 bg-white/5 rounded-[2rem] border-b-8 border-white/10"></div>
+                          </div>
+                        }
+                      </div>
+
+                      <!-- 3rd Place: Bronze -->
+                      <div class="flex flex-col items-center md:order-3 hover-tilt preserve-3d">
+                        @if (getWinners()[2]; as p) {
+                          <div class="relative mb-12">
+                            <div class="aura-bronze absolute -inset-4 bg-orange-700/20 blur-2xl rounded-full"></div>
+                            <div class="w-28 h-28 rounded-3xl bg-slate-100 flex items-center justify-center text-slate-900 border-4 border-white shadow-2xl relative z-10">
+                              <span class="text-5xl font-black uppercase tracking-tighter italic">{{ p.name.charAt(0) }}</span>
+                            </div>
+                            <div class="absolute -top-4 -right-4 bg-orange-800 text-white w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-black border-4 border-slate-950 shadow-xl -rotate-12 z-20">3rd</div>
+                          </div>
+                          
+                          <div class="text-center mb-10 z-10">
+                            <p class="font-black text-xl text-white tracking-tight">{{ p.name }}</p>
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{{ p.score }} PTS</span>
+                          </div>
+
+                          <!-- Bronze Platform -->
+                          <div class="w-full h-28 royal-glass rounded-3xl border-b-[8px] border-orange-700/30 flex items-center justify-center relative overflow-hidden group">
+                            <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-orange-700/50 to-transparent"></div>
+                            <lucide-icon [name]="Medal" [size]="40" class="text-orange-700/40 group-hover:scale-125 transition-transform duration-700"></lucide-icon>
+                          </div>
+                        } @else {
+                          <div class="opacity-10 grayscale flex flex-col items-center">
+                            <div class="w-28 h-28 bg-white/10 rounded-3xl mb-12"></div>
+                            <div class="w-full h-28 bg-white/5 rounded-3xl border-b-8 border-white/10"></div>
+                          </div>
+                        }
+                      </div>
+
+                    </div>
+                  </div>
+
+                  <!-- Rest of Leaderboard (Royal Dark) -->
+                  @if (getSortedParticipants().length > 3) {
+                    <div class="space-y-4 pt-12 mt-12 border-t border-white/10 relative z-10">
+                      <p class="text-[10px] font-black uppercase tracking-[0.4em] text-slate-500 mb-6 text-center">Finalists Honor Roll</p>
+                      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        @for (p of getSortedParticipants() | slice:3:11; track p.id; let i = $index) {
+                          <div class="flex items-center gap-5 p-5 rounded-3xl bg-white/5 border border-white/5 hover:bg-white/10 hover:border-white/20 transition-all group/item">
+                            <span class="text-xs font-black text-slate-500 w-8">#0{{ i + 4 }}</span>
+                            <div class="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-white text-sm font-black border border-white/10 group-hover/item:scale-110 transition-transform">{{ p.name.charAt(0) }}</div>
+                            <div class="flex-1">
+                              <p class="font-bold text-white group-hover/item:text-amber-400 transition-colors">{{ p.name }}</p>
+                              <p class="text-[9px] text-slate-500 uppercase tracking-widest">{{ p.status }}</p>
+                            </div>
+                            <div class="text-right">
+                              <span class="font-black text-sm text-slate-300">{{ p.score }}</span>
+                              <p class="text-[8px] text-slate-600 font-black uppercase tracking-tighter">points</p>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    </div>
+                  }
+                </div>
+              }
+
             </div>
 
             <!-- Right: Sticky Sidebar -->
@@ -410,25 +545,46 @@ type ModalStep = 'form' | 'confirm' | 'success';
                 <!-- Register CTA -->
                 @if (alreadyRegistered()) {
                   <div class="space-y-3">
-                    <div class="p-4 rounded-2xl bg-teal-50 border border-teal-200 text-center space-y-1">
-                      <p class="text-2xl">✅</p>
-                      <p class="font-black text-teal-700 text-sm">You're Registered!</p>
-                      <p class="text-xs text-teal-600">Good luck in the competition.</p>
-                    </div>
-                    @if (comp()!.status !== 'completed' && !isDeadlinePassed()) {
+
+                    @if (mySubmission(); as sub) {
+                      <div class="p-6 rounded-2xl bg-teal-50 border-2 border-teal-100 text-center space-y-3 animate-in fade-in zoom-in duration-500">
+                        <div class="w-12 h-12 bg-teal-600 text-white rounded-full flex items-center justify-center mx-auto shadow-lg">
+                          <lucide-icon [name]="CheckCircle2" [size]="24"></lucide-icon>
+                        </div>
+                        <div>
+                          <p class="font-black text-teal-900 text-lg">Challenge Completed</p>
+                          <p class="text-[10px] text-teal-600 font-bold uppercase tracking-widest mt-1">Submission Verified & Locked</p>
+                        </div>
+                        <div class="pt-3 border-t border-teal-100 grid grid-cols-2 gap-2 text-[10px] font-black uppercase text-teal-800">
+                          <div class="bg-white/50 p-2 rounded-xl">Score: {{ sub.score }}%</div>
+                          <div class="bg-white/50 p-2 rounded-xl">Errors: {{ sub.errorsCount }}</div>
+                        </div>
+                        @if (sub.submissionUrl && sub.submissionUrl !== 'task-based-submission') {
+                          <a [href]="sub.submissionUrl" target="_blank" 
+                             class="block py-2 text-[10px] font-bold text-teal-700 bg-white/40 rounded-xl hover:bg-white/60 transition-all truncate px-3">
+                             📎 Attached: {{ sub.submissionUrl }}
+                          </a>
+                        }
+                      </div>
+                    } @else if (comp()!.status !== 'completed' && !isDeadlinePassed()) {
+                      <div class="p-4 rounded-2xl bg-teal-50 border border-teal-200 text-center space-y-1 mb-2">
+                        <p class="font-black text-teal-700 text-sm">✓ You are Registered</p>
+                        <p class="text-[10px] text-teal-600">Ready to take the challenge?</p>
+                      </div>
+                      <button (click)="openAssessment()"
+                              class="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-black text-lg flex items-center justify-center gap-2 transition-all shadow-lg active:scale-95 group relative overflow-hidden">
+                        <div class="absolute inset-0 bg-gradient-to-r from-red-600/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                        <lucide-icon [name]="Medal" [size]="20" class="group-hover:animate-bounce"></lucide-icon>
+                        Start Challenge Tasks
+                      </button>
+                      <div class="flex items-center justify-center gap-2 text-[10px] font-black text-red-600 uppercase tracking-tighter animate-pulse">
+                        <lucide-icon [name]="AlertTriangle" [size]="12"></lucide-icon>
+                        Warning: You only have one chance to submit
+                      </div>
                       <button (click)="openSubmitModal()"
                               class="w-full py-3 border-2 border-teal-600 text-teal-700 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-teal-50 transition-all active:scale-95">
                         📎 Submit My Project
                       </button>
-                      @if (mySubmission()) {
-                        <p class="text-[10px] text-teal-600 text-center font-bold">
-                          ✓ Submitted · <a [href]="mySubmission()!.submissionUrl" target="_blank" class="underline">View link</a>
-                        </p>
-                      }
-                    } @else if (mySubmission()) {
-                        <p class="text-[10px] text-teal-600 text-center font-bold">
-                          ✓ Submitted · <a [href]="mySubmission()!.submissionUrl" target="_blank" class="underline">View link</a>
-                        </p>
                     }
                   </div>
                 } @else if (comp()!.status === 'completed') {
@@ -515,6 +671,133 @@ type ModalStep = 'form' | 'confirm' | 'success';
                       class="w-full py-4 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white rounded-2xl font-bold text-lg flex items-center justify-center gap-2 transition-all shadow-lg shadow-teal-600/20 active:scale-95">
                 {{ isSubmitting() ? 'Submitting…' : '📎 Submit Project' }}
               </button>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- ── CHALLENGE ASSESSMENT MODAL ────────────────────────────────────── -->
+    @if (assessmentState(); as s) {
+      <div class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-300 flex flex-col" style="max-height:90vh;">
+          
+          <!-- Header -->
+          <div class="px-8 py-6 flex items-start justify-between border-b border-border shrink-0"
+               [style.background]="s.finished ? 'linear-gradient(135deg,#0d9488,#0f766e)' : 'linear-gradient(135deg,#6366f1,#4f46e5)'">
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-widest text-white/70 mb-1">Interactive Challenge</p>
+              <h2 class="text-xl font-black text-white">{{ s.exercise.title }}</h2>
+              <div class="flex items-center gap-3 mt-2 text-white/80 text-xs font-bold">
+                <span>{{ s.currentTask + 1 }} / {{ s.exercise.tasks.length }} Tasks</span>
+                <span class="w-1 h-1 bg-white/40 rounded-full"></span>
+                <span>Category: {{ s.exercise.category }}</span>
+              </div>
+            </div>
+            <button (click)="closeAssessment()" class="p-2 hover:bg-white/20 rounded-xl transition-all text-white">
+              <lucide-icon [name]="XCircle" [size]="24"></lucide-icon>
+            </button>
+          </div>
+
+          <!-- Progress -->
+          @if (!s.finished) {
+            <div class="h-1.5 bg-muted shrink-0">
+              <div class="h-full bg-blue-500 transition-all duration-500"
+                   [style.width.%]="((s.currentTask + (s.confirmed[s.currentTask] ? 1 : 0)) / s.exercise.tasks.length * 100)"></div>
+            </div>
+          }
+
+          <!-- Body -->
+          <div class="overflow-y-auto flex-1 p-8">
+            @if (s.finished) {
+              <div class="text-center space-y-6 py-6">
+                <div class="w-24 h-24 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center text-5xl mx-auto shadow-xl">
+                  {{ s.score >= 70 ? '🎉' : '📈' }}
+                </div>
+                <div class="space-y-2">
+                  <h3 class="text-3xl font-black text-teal-700">{{ s.score }}% Complete!</h3>
+                  <p class="text-muted-foreground font-medium">Excellent work. Your results have been submitted and your AI profile updated.</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                  <div class="bg-teal-50 border border-teal-100 p-4 rounded-2xl text-center">
+                    <p class="text-2xl font-black text-teal-600">{{ getCorrectCount(s) }}</p>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-teal-700 mt-1">Found correct</p>
+                  </div>
+                  <div class="bg-blue-50 border border-blue-100 p-4 rounded-2xl text-center">
+                    <p class="text-2xl font-black text-blue-600">+{{ s.score }}</p>
+                    <p class="text-[10px] font-black uppercase tracking-widest text-blue-700 mt-1">Skill Points</p>
+                  </div>
+                </div>
+                <button (click)="closeAssessment()" class="w-full py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-black transition-all shadow-lg active:scale-95 mt-6">
+                  Great, Return to Competition
+                </button>
+              </div>
+            } @else {
+              @let task = s.exercise.tasks[s.currentTask];
+              @let confirmed = s.confirmed[s.currentTask];
+              @let selected = s.selectedAnswers[s.currentTask];
+
+              <div class="space-y-8">
+                <div class="space-y-2">
+                  <h4 class="text-2xl font-black text-foreground leading-tight">{{ task.question }}</h4>
+                  <p class="text-muted-foreground text-sm font-medium">Select the most accurate response to validate this task.</p>
+                </div>
+
+                <div class="space-y-3">
+                  @for (opt of task.options; track opt; let oi = $index) {
+                    <button (click)="selectAssessmentAnswer(oi)" [disabled]="confirmed"
+                            [ngClass]="{
+                              'border-blue-500 bg-blue-50/50 text-blue-700 ring-2 ring-blue-500/20': !confirmed && selected === oi,
+                              'border-teal-500 bg-teal-50 text-teal-700': confirmed && oi === task.correctIndex,
+                              'border-red-400 bg-red-50 text-red-600': confirmed && selected === oi && oi !== task.correctIndex,
+                              'border-border hover:border-blue-300 hover:bg-muted/30': !confirmed && selected !== oi
+                            }"
+                            class="w-full text-left px-6 py-5 border-2 rounded-2xl font-bold text-base transition-all flex items-center gap-4">
+                      <span class="w-8 h-8 rounded-lg border-2 flex items-center justify-center text-xs font-black shrink-0"
+                            [ngClass]="{
+                              'bg-blue-500 border-blue-500 text-white': !confirmed && selected === oi,
+                              'bg-teal-500 border-teal-500 text-white': confirmed && oi === task.correctIndex,
+                              'bg-red-400 border-red-400 text-white': confirmed && selected === oi && oi !== task.correctIndex,
+                              'border-muted-foreground/30 text-muted-foreground': !confirmed && selected !== oi
+                            }">{{ ['A','B','C','D'][oi] }}</span>
+                      {{ opt }}
+                    </button>
+                  }
+                </div>
+
+                @if (confirmed) {
+                  <div class="p-6 rounded-2xl border-2 animate-in slide-in-from-bottom-2 duration-300" 
+                       [class]="selected === task.correctIndex ? 'bg-teal-50 border-teal-100 text-teal-800' : 'bg-amber-50 border-amber-100 text-amber-800'">
+                    <p class="font-black text-sm mb-2 uppercase tracking-widest">{{ selected === task.correctIndex ? '✨ Task Validated!' : '💡 Guidance' }}</p>
+                    <p class="text-sm font-medium leading-relaxed">{{ task.explanation }}</p>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <!-- Footer -->
+          @if (!s.finished) {
+            <div class="px-8 py-6 border-t border-border bg-muted/20 flex items-center justify-between shrink-0">
+               @if (!s.confirmed[s.currentTask]) {
+                 <button (click)="confirmAssessmentAnswer()" [disabled]="s.selectedAnswers[s.currentTask] === null"
+                         class="px-10 py-4 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-2xl font-black transition-all shadow-lg active:scale-95">
+                   Validate Task
+                 </button>
+               } @else if (s.currentTask < s.exercise.tasks.length - 1) {
+                 <button (click)="nextAssessmentTask()" class="px-10 py-4 bg-foreground text-background hover:opacity-90 rounded-2xl font-black transition-all flex items-center gap-2">
+                   Next Task <lucide-icon [name]="ArrowRight" [size]="18"></lucide-icon>
+                 </button>
+               } @else {
+                 <button (click)="finishAssessment()" class="px-10 py-4 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-black transition-all flex items-center gap-2 shadow-lg active:scale-95">
+                   <lucide-icon [name]="Award" [size]="18"></lucide-icon>
+                   Finish Challenge
+                 </button>
+               }
+               <div class="text-right">
+                 <p class="text-xs font-black text-muted-foreground uppercase tracking-widest">{{ s.currentTask + 1 }} of {{ s.exercise.tasks.length }}</p>
+                 <p class="text-[10px] text-muted-foreground font-bold">Category Match: 100%</p>
+               </div>
             </div>
           }
         </div>
@@ -663,10 +946,14 @@ type ModalStep = 'form' | 'confirm' | 'success';
                 <h2 class="text-2xl font-extrabold text-foreground">You're In!</h2>
                 <p class="text-muted-foreground">Welcome, <strong>{{ regName }}</strong>! Your registration for <strong>{{ comp()!.title }}</strong> is confirmed.</p>
               </div>
-              <div class="p-4 bg-teal-50 rounded-2xl border border-teal-100 text-sm text-teal-700 font-medium space-y-1">
-                <p>🏆 You're competing for: <strong>{{ comp()!.prize }}</strong></p>
-                <p>📅 Deadline: <strong>{{ comp()!.deadline }}</strong></p>
-                <p>📧 A confirmation will be sent to <strong>{{ regEmail }}</strong></p>
+
+
+              <div class="p-4 bg-teal-50 rounded-2xl border border-teal-100 text-sm text-teal-700 font-medium space-y-1 text-left">
+                <p>🏆 Competing for: <strong>{{ comp()!.prize }}</strong></p>
+                @if (comp()!.startDate) {
+                  <p>📅 Starts: <strong>{{ comp()!.startDate }}</strong></p>
+                }
+                <p>📧 Confirmation sent to <strong>{{ regEmail }}</strong></p>
               </div>
               <button (click)="closeModal()" class="w-full py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-bold transition-all active:scale-95">
                 Done — Good Luck! 🚀
@@ -688,6 +975,7 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
   readonly Flag = Flag; readonly Tag = Tag; readonly X = X; readonly AlertTriangle = AlertTriangle;
   readonly ChevronRight = ChevronRight; readonly Star = Star; readonly Zap = Zap;
   readonly ThumbsUp = ThumbsUp; readonly ThumbsDown = ThumbsDown;
+  readonly Medal = Medal;
 
   comp = signal<Competition | null>(null);
   showModal = signal(false);
@@ -715,6 +1003,11 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
   isSubmitting = signal(false);
   submitUrl = '';
   submitNotes = '';
+
+  assessmentState = signal<PracticeState | null>(null);
+
+  readonly XCircle = XCircle;
+  readonly Award = Award;
   postCompetitionReview = computed(() => this.getCategoryReview());
 
   mySubmission = computed(() => {
@@ -757,7 +1050,7 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
       const comp = found ?? this.dataService.competitions()[0];
       this.comp.set(comp ?? null);
       if (comp) {
-        this.startCountdown(comp.deadline);
+        this.runTimers(comp);
         const key = `reg_comp_${comp.id}`;
         const emailKey = `reg_comp_email_${comp.id}`;
         const registered = localStorage.getItem(key) === 'true';
@@ -789,28 +1082,31 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
     clearInterval(this.countdownInterval);
   }
 
-  private startCountdown(deadlineStr: string) {
-    clearInterval(this.countdownInterval);
+  private runTimers(comp: Competition) {
+    if (this.countdownInterval) clearInterval(this.countdownInterval);
+    const deadline = new Date(comp.deadline).getTime();
+    const pad = (n: number) => Math.floor(n).toString().padStart(2, '0');
+
     const tick = () => {
-      const target = new Date(deadlineStr).getTime();
-      const now = Date.now();
-      const diff = target - now;
-      if (diff <= 0 || isNaN(diff)) {
+      const now = new Date().getTime();
+      
+      // 1. Registration Deadline Timer
+      const dDiff = deadline - now;
+      if (dDiff <= 0 || isNaN(dDiff)) {
         this.countdown.set([
           { label: 'Days', value: '00' }, { label: 'Hrs', value: '00' },
           { label: 'Min', value: '00' }, { label: 'Sec', value: '00' }
         ]);
         this.isDeadlinePassed.set(true);
-        return;
+      } else {
+        this.isDeadlinePassed.set(false);
+        this.countdown.set([
+          { label: 'Days', value: pad(dDiff / 86400000) },
+          { label: 'Hrs', value: pad((dDiff % 86400000) / 3600000) },
+          { label: 'Min', value: pad((dDiff % 3600000) / 60000) },
+          { label: 'Sec', value: pad((dDiff % 60000) / 1000) }
+        ]);
       }
-      this.isDeadlinePassed.set(false);
-      const pad = (n: number) => String(Math.floor(n)).padStart(2, '0');
-      this.countdown.set([
-        { label: 'Days', value: pad(diff / 86400000) },
-        { label: 'Hrs', value: pad((diff % 86400000) / 3600000) },
-        { label: 'Min', value: pad((diff % 3600000) / 60000) },
-        { label: 'Sec', value: pad((diff % 60000) / 1000) }
-      ]);
     };
     tick();
     this.countdownInterval = setInterval(tick, 1000);
@@ -818,12 +1114,6 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
 
   getRules(): string[] {
     return (this.comp()?.rules ?? '').split('\n').map(r => r.replace(/^\d+\.\s*/, '').trim()).filter(r => !!r);
-  }
-
-  getSortedParticipants() {
-    return [...(this.comp()?.participants ?? [])]
-      .filter(p => p.status !== 'disqualified')
-      .sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
   }
 
   openSubmitModal() {
@@ -992,59 +1282,163 @@ export class CompetitionDetailComponent implements OnInit, OnDestroy {
     const comp = this.comp();
     if (!comp) return [];
     const cat = (comp.category ?? '').toLowerCase();
+    
     if (cat.includes('coding') || cat.includes('programming') || cat.includes('hackathon')) {
       return [
-        { question: 'Time complexity of binary search?', correctAnswer: 'O(log n)', explanation: 'Binary search halves the search space each step.' },
-        { question: 'Which data structure uses FIFO?', correctAnswer: 'Queue', explanation: 'Queues process elements First-In-First-Out.' },
-        { question: 'What does SQL stand for?', correctAnswer: 'Structured Query Language', explanation: 'Standard language for relational databases.' },
-        { question: 'What does OOP stand for?', correctAnswer: 'Object-Oriented Programming', explanation: 'Organises code around objects with properties and methods.' },
+        { question: 'What is the prime advantage of B-Trees in databases?', correctAnswer: 'Minimized disk I/O through high branching factor', explanation: 'B-Trees keep data sorted and allow for logarithmic time for searches, sequential access, insertions, and deletions.' },
+        { question: 'Difference between Process and Thread?', correctAnswer: 'Processes have independent memory; threads share it', explanation: 'Threads within the same process share the same data space, making communication easier but synchronization harder.' },
+        { question: 'What does the CAP theorem state?', correctAnswer: 'Consistency, Availability, and Partition Tolerance balance', explanation: 'A distributed system can only provide two of the three guarantees simultaneously.' },
+        { question: 'What is an idempotent API operation?', correctAnswer: 'Result is same for one or many identical requests', explanation: 'Operations like GET and PUT should be idempotent, while POST is typically not.' },
+        { question: 'Complexity of balancing an AVL tree?', correctAnswer: 'O(log n)', explanation: 'AVL trees maintain a height balance factor, ensuring logarithmic search performance.' }
       ];
     }
     if (cat.includes('science') || cat.includes('physics') || cat.includes('chemistry') || cat.includes('biology')) {
       return [
-        { question: 'Newton Third Law?', correctAnswer: 'Every action has an equal and opposite reaction', explanation: 'Forces always occur in pairs.' },
-        { question: 'Chemical symbol for water?', correctAnswer: 'H2O', explanation: '2 hydrogen atoms bonded to 1 oxygen atom.' },
-        { question: 'Powerhouse of the cell?', correctAnswer: 'Mitochondria', explanation: 'Mitochondria produce ATP through cellular respiration.' },
-        { question: 'Speed of light?', correctAnswer: '300,000 km/s', explanation: 'Light travels approximately 299,792 km/s in a vacuum.' },
+        { question: 'How does the Doppler Effect affect light from receding stars?', correctAnswer: 'Redshift (Frequency decreases)', explanation: 'As a source moves away, the observed wavelength increases (shifts toward red).' },
+        { question: 'What is the "Central Dogma" of molecular biology?', correctAnswer: 'DNA → RNA → Protein', explanation: 'Describes the flow of genetic information within a biological system.' },
+        { question: 'First law of Thermodynamics?', correctAnswer: 'Energy cannot be created or destroyed, only transformed', explanation: 'Total energy in an isolated system remains constant.' },
+        { question: 'Role of enzymes in activation energy?', correctAnswer: 'They lower activation energy to speed up reactions', explanation: 'Enzymes act as biological catalysts.' },
+        { question: 'What is Heisenberg\'s Uncertainty Principle?', correctAnswer: 'Position and momentum cannot both be precisely known', explanation: 'The more precisely one property is measured, the less precisely the other can be controlled/known.' }
       ];
     }
     if (cat.includes('math')) {
       return [
-        { question: 'Value of pi?', correctAnswer: 'Approximately 3.14159', explanation: 'Ratio of circumference to diameter.' },
-        { question: '5 factorial?', correctAnswer: '120', explanation: '5 x 4 x 3 x 2 x 1 = 120.' },
-        { question: 'Pythagorean theorem?', correctAnswer: 'a2 + b2 = c2', explanation: 'c is the hypotenuse of a right-angled triangle.' },
-        { question: 'What is a prime number?', correctAnswer: 'Divisible only by 1 and itself', explanation: 'Examples: 2, 3, 5, 7, 11.' },
+        { question: 'Result of Euler\'s Identity (e^iπ + 1)?', correctAnswer: '0', explanation: 'Considered one of the most beautiful equations in math, linking 5 fundamental constants.' },
+        { question: 'What determines if a function is surjective?', correctAnswer: 'Every element in the codomain is mapped', explanation: 'The range of the function is equal to its codomain.' },
+        { question: 'What is the Law of Large Numbers?', correctAnswer: 'Sample mean converges to population mean as n grows', explanation: 'Describes the result of performing the same experiment many times.' },
+        { question: 'Derivative of ln(x)?', correctAnswer: '1/x', explanation: 'Fundamental rule in calculus for logarithmic functions.' },
+        { question: 'Goldbach\'s Conjecture states?', correctAnswer: 'Every even integer > 2 is sum of two primes', explanation: 'One of the oldest and most famous unsolved problems in number theory.' }
       ];
     }
     if (cat.includes('art')) {
       return [
-        { question: 'Movement with bold colors and fragmented forms?', correctAnswer: 'Cubism', explanation: 'Pioneered by Picasso and Braque.' },
-        { question: 'Who painted the Mona Lisa?', correctAnswer: 'Leonardo da Vinci', explanation: 'Painted 1503-1519, now in the Louvre.' },
-        { question: 'Three primary colors in art?', correctAnswer: 'Red, Yellow, Blue', explanation: 'Cannot be mixed from other colors.' },
-        { question: 'What is chiaroscuro?', correctAnswer: 'Strong light and dark contrast in artwork', explanation: 'Used by Caravaggio to create depth.' },
+        { question: 'Pioneer of the "Readymade" movement?', correctAnswer: 'Marcel Duchamp', explanation: 'Duchamp challenged traditional notions of art with works like "Fountain".' },
+        { question: 'What defines the "Golden Ratio" in composition?', correctAnswer: 'Ratio of approx 1:1.618 (Phi)', explanation: 'Commonly used in art and architecture for aesthetically pleasing proportions.' },
+        { question: 'Avent-garde movement focused on dreams and the unconscious?', correctAnswer: 'Surrealism', explanation: 'Led by figures like Salvador Dalí and René Magritte.' },
+        { question: 'Technique of using small dots to create an image?', correctAnswer: 'Pointillism', explanation: 'Developed by Georges Seurat and Paul Signac.' },
+        { question: 'What is "Atmospheric Perspective"?', correctAnswer: 'Using color/blur to suggest depth & distance', explanation: 'Objects further away appear less detailed and bluer/grayer.' }
       ];
     }
     if (cat.includes('music')) {
       return [
-        { question: 'Sharps in A major?', correctAnswer: '3 sharps: F#, C#, G#', explanation: 'A major has three sharps.' },
-        { question: 'What does Allegro mean?', correctAnswer: 'Fast and lively', explanation: 'Typically 120-156 beats per minute.' },
-        { question: 'Lines on a music staff?', correctAnswer: '5 lines', explanation: 'Notes placed on or between the five horizontal lines.' },
-        { question: 'Who composed Moonlight Sonata?', correctAnswer: 'Ludwig van Beethoven', explanation: 'Composed in 1801, Op. 27.' },
+        { question: 'Standard frequency of concert A?', correctAnswer: '440 Hz', explanation: 'Standard tuning pitch for most modern orchestras.' },
+        { question: 'What is a "Tritone" interval?', correctAnswer: 'An augmented fourth or diminished fifth', explanation: 'Historically known as "Diabolus in Musica" due to its dissonance.' },
+        { question: 'Composition style using all 12 chromatic tones equally?', correctAnswer: 'Serialism / 12-Tone Technique', explanation: 'Pioneered by Arnold Schoenberg.' },
+        { question: 'A "Suite" in classical music is?', correctAnswer: 'An ordered set of instrumental/orchestral pieces', explanation: 'Often based on dance forms.' },
+        { question: 'Difference between major and minor scales?', correctAnswer: 'The third scale degree (Major 3rd vs Minor 3rd)', explanation: 'This interval primarily determines the scale\'s "happy" or "sad" quality.' }
       ];
     }
     if (cat.includes('language') || cat.includes('english') || cat.includes('french')) {
       return [
-        { question: 'Past tense of "to run"?', correctAnswer: 'Ran', explanation: '"Run" is an irregular verb.' },
-        { question: 'What is a synonym?', correctAnswer: 'A word with a similar meaning', explanation: 'Example: happy and joyful.' },
-        { question: 'Goal of persuasive writing?', correctAnswer: 'To convince the reader', explanation: 'Uses evidence and rhetoric to influence beliefs.' },
-        { question: 'What is an antonym?', correctAnswer: 'A word with the opposite meaning', explanation: 'Example: hot and cold.' },
+        { question: 'What is "Etymology"?', correctAnswer: 'The study of word origins and history', explanation: 'Tracks how word meanings and spellings evolve over time.' },
+        { question: 'A "Spoonerism" is a linguistic error where?', correctAnswer: 'Initial sounds of two words are swapped', explanation: 'Named after William Archibald Spooner (e.g., "The queer old dean" vs "The dear old queen").' },
+        { question: 'The "Sapir-Whorf Hypothesis" suggests?', correctAnswer: 'Language influences or determines thought', explanation: 'Proposes that the structure of a language affects its speakers\' world view.' },
+        { question: 'A "Portmanteau" word is formed by?', correctAnswer: 'Joining parts of two words (e.g., Brunch)', explanation: 'Combines the meanings of both source words.' },
+        { question: 'Difference between a Clause and a Phrase?', correctAnswer: 'Clauses have a subject and verb; phrases do not', explanation: 'A clause can sometimes stand alone as a sentence, a phrase cannot.' }
       ];
     }
-    return [
-      { question: 'What is critical thinking?', correctAnswer: 'Objective analysis and evaluation of information', explanation: 'Reasoning based on evidence rather than assumption.' },
-      { question: 'What is teamwork?', correctAnswer: 'Collaborative effort to achieve a common goal', explanation: 'Requires communication, trust, and shared responsibility.' },
-      { question: 'What does innovation mean?', correctAnswer: 'Introducing a new idea, method, or product', explanation: 'Innovation drives progress across all fields.' },
-      { question: 'What is a competitive advantage?', correctAnswer: 'A condition giving an entity an edge over rivals', explanation: 'Can come from quality, cost, speed, or unique capabilities.' },
-    ];
+    if (cat.includes('robotics')) {
+      return [
+        { question: 'Inverse Kinematics (IK) solves for?', correctAnswer: 'Joint angles needed for a specific end-effector pose', explanation: 'Essential for robot arm precision.' },
+        { question: 'What is a "PID Controller"?', correctAnswer: 'Proportional-Integral-Derivative feedback loop', explanation: 'Continuously calculates an error value and applies a correction.' },
+        { question: 'Degrees of Freedom (DoF) of a typical human arm?', correctAnswer: '7 DoF', explanation: '3 at the shoulder, 1 at the elbow, and 3 at the wrist.' },
+        { question: 'A "Lidar" sensor uses what to measure distance?', correctAnswer: 'Pulsed laser light', explanation: 'Light Detection and Ranging.' },
+        { question: 'Dead Reckoning is a navigation method based on?', correctAnswer: 'Previous position and estimated speeds/times', explanation: 'Subject to cumulative errors over time.' }
+      ];
+    }
+    return [];
+  }
+
+  // ── ASSESSMENT LOGIC ───────────────────────────────────────────────────────
+
+  openAssessment() {
+    const comp = this.comp();
+    if (!comp || this.isDeadlinePassed() || this.mySubmission()) return;
+
+    // Find exercise matching category
+    const cat = comp.category || 'General';
+    const exercises = this.dataService.exercises();
+    let ex = exercises.find(e => e.category.toLowerCase() === cat.toLowerCase());
+    if (!ex) ex = exercises[0]; // Fallback
+
+    if (!ex) return;
+
+    this.assessmentState.set({
+      exercise: ex,
+      currentTask: 0,
+      selectedAnswers: new Array(ex.tasks.length).fill(null),
+      confirmed: new Array(ex.tasks.length).fill(false),
+      finished: false,
+      score: 0
+    });
+  }
+
+  closeAssessment() {
+    this.assessmentState.set(null);
+  }
+
+  selectAssessmentAnswer(idx: number) {
+    const s = this.assessmentState();
+    if (!s || s.confirmed[s.currentTask] || s.finished) return;
+    const newAnswers = [...s.selectedAnswers];
+    newAnswers[s.currentTask] = idx;
+    this.assessmentState.set({ ...s, selectedAnswers: newAnswers });
+  }
+
+  confirmAssessmentAnswer() {
+    const s = this.assessmentState();
+    if (!s || s.selectedAnswers[s.currentTask] === null || s.confirmed[s.currentTask]) return;
+    const newConfirmed = [...s.confirmed];
+    newConfirmed[s.currentTask] = true;
+    this.assessmentState.set({ ...s, confirmed: newConfirmed });
+  }
+
+  nextAssessmentTask() {
+    const s = this.assessmentState();
+    if (!s || s.currentTask >= s.exercise.tasks.length - 1) return;
+    this.assessmentState.set({ ...s, currentTask: s.currentTask + 1 });
+  }
+
+  finishAssessment() {
+    const s = this.assessmentState();
+    const comp = this.comp();
+    if (!s || !comp) return;
+
+    // Calculate score
+    const correctCount = s.selectedAnswers.filter((ans, i) => ans === s.exercise.tasks[i].correctIndex).length;
+    const scorePct = Math.round((correctCount / s.exercise.tasks.length) * 100);
+    const errorsCount = s.exercise.tasks.length - correctCount;
+
+    this.assessmentState.set({ ...s, finished: true, score: scorePct });
+
+    // Submit to backend
+    const email = this.regEmail.trim() || localStorage.getItem(`reg_comp_email_${comp.id}`);
+    if (email) {
+      this.dataService.submitProject(comp.id, email, 'task-based-submission', `Completed challenge with ${scorePct}% score.`, scorePct, errorsCount).subscribe(res => {
+        if (res) {
+          const currentComp = this.comp();
+          if (currentComp) {
+            const others = (currentComp.participants ?? []).filter(p => p.email.toLowerCase() !== email.toLowerCase());
+            this.comp.set({ ...currentComp, participants: [...others, res] });
+          }
+        }
+      });
+    }
+  }
+
+  getSortedParticipants() {
+    return [...(this.comp()?.participants ?? [])]
+      .filter(p => p.status !== 'disqualified')
+      .sort((a, b) => (b.score ?? -1) - (a.score ?? -1));
+  }
+
+  getWinners() {
+    return this.getSortedParticipants().slice(0, 3);
+  }
+
+  getCorrectCount(s: PracticeState): number {
+    if (!s || !s.exercise || !s.exercise.tasks) return 0;
+    return s.selectedAnswers.filter((ans, i) => ans === s.exercise.tasks[i].correctIndex).length;
   }
 }
+

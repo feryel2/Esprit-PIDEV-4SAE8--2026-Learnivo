@@ -23,4 +23,7 @@ public interface CompetitionRepository extends JpaRepository<Competition, Long> 
 
     @Query("SELECT DISTINCT c FROM Competition c JOIN c.participants p WHERE LOWER(p.email) = LOWER(:email)")
     List<Competition> findByParticipantEmailString(@org.springframework.data.repository.query.Param("email") String email);
+
+    @Query("SELECT c FROM Competition c LEFT JOIN FETCH c.participants WHERE c.id = :id")
+    java.util.Optional<Competition> findByIdWithParticipants(@org.springframework.data.repository.query.Param("id") Long id);
 }

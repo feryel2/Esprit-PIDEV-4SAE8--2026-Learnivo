@@ -4,12 +4,11 @@ import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { UserService, PageResponse, UserCreate, UserUpdate } from '../../../services/user.service';
 import { User, Role } from '../../../models/user.model';
-import { SidebarComponent } from '../../shared/sidebar/sidebar.component';
 
 @Component({
   selector: 'app-users',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, RouterModule, SidebarComponent],
+  imports: [CommonModule, ReactiveFormsModule, RouterModule],
   templateUrl: './users.component.html',
   styleUrls: ['./users.component.scss'],
 })

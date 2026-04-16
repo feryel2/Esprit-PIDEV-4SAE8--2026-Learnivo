@@ -28,7 +28,6 @@ export class NavbarComponent {
     { href: '/events', label: 'Events' },
     { href: '/competitions', label: 'Competitions' },
     { href: '/classes', label: 'Classes' },
-    { href: '/speech-test', label: '🎤 Skills Test' },
   ];
 
   constructor(public router: Router, public auth: AuthService) {}

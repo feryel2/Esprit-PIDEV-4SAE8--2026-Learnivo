@@ -18,13 +18,20 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 @Service
-@RequiredArgsConstructor
 public class UserService {
     
     private final UserRepository userRepository;
     private final ProfileRepository profileRepository;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+
+    public UserService(UserRepository userRepository, ProfileRepository profileRepository, 
+                       PasswordEncoder passwordEncoder, EmailService emailService) {
+        this.userRepository = userRepository;
+        this.profileRepository = profileRepository;
+        this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
+    }
     
     public Page<UserResponseDTO> getAllUsers(Pageable pageable) {
         return userRepository.findAll(pageable)

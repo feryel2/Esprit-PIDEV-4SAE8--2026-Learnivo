@@ -11,7 +11,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -180,6 +182,10 @@ public class CompetitionService {
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("No registration found for this email."));
 
+        if (participant.getSubmittedAt() != null) {
+            throw new IllegalStateException("You have already submitted your response for this competition. Only one attempt is allowed.");
+        }
+
         participant.setSubmissionUrl(submissionUrl != null ? submissionUrl : "task-based-submission");
         participant.setSubmissionNotes(submissionNotes);
         participant.setSubmittedAt(LocalDateTime.now().toString());
@@ -192,6 +198,35 @@ public class CompetitionService {
 
         competitionRepository.save(comp);
         return participant;
+    }
+
+    // ── Publication des résultats ──────────────────────────────────────────────
+
+    public Competition publishResults(Long id) {
+        Competition comp = findById(id);
+
+        comp.setResultsPublished(true);
+        comp.setStatus(Competition.Status.COMPLETED);
+
+        // Récupérer les participants non disqualifiés, triés par score décroissant
+        List<Participant> leaderboard = comp.getParticipants().stream()
+                .filter(p -> p.getStatus() != Participant.Status.DISQUALIFIED)
+                .sorted(Comparator.comparing(Participant::getScore, Comparator.nullsLast(Comparator.reverseOrder())))
+                .collect(Collectors.toList());
+
+        // Réinitialiser les statuts (au cas où on re-publie)
+        comp.getParticipants().forEach(p -> {
+            if (p.getStatus() == Participant.Status.WINNER) {
+                p.setStatus(Participant.Status.REGISTERED);
+            }
+        });
+
+        // Marquer le top 3 comme gagnants
+        for (int i = 0; i < Math.min(3, leaderboard.size()); i++) {
+            leaderboard.get(i).setStatus(Participant.Status.WINNER);
+        }
+
+        return competitionRepository.save(comp);
     }
 
     // ── Recommandations ────────────────────────────────────────────────────────

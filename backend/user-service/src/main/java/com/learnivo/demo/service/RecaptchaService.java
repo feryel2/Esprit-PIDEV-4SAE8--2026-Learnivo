@@ -1,6 +1,7 @@
 package com.learnivo.demo.service;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -13,8 +14,9 @@ import org.springframework.http.ResponseEntity;
 import java.util.Map;
 
 @Service
-@Slf4j
 public class RecaptchaService {
+
+    private static final Logger log = LoggerFactory.getLogger(RecaptchaService.class);
 
     @Value("${recaptcha.secret.key}")
     private String recaptchaSecret;

@@ -25,12 +25,18 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class TicketService {
     
     private final SupportTicketRepository ticketRepository;
     private final TicketMessageRepository messageRepository;
     private final TicketCategoryRepository categoryRepository;
+
+    public TicketService(SupportTicketRepository ticketRepository, TicketMessageRepository messageRepository, 
+                         TicketCategoryRepository categoryRepository) {
+        this.ticketRepository = ticketRepository;
+        this.messageRepository = messageRepository;
+        this.categoryRepository = categoryRepository;
+    }
     
     @Transactional
     public TicketResponseDTO createTicket(TicketCreateDTO dto, User user) {

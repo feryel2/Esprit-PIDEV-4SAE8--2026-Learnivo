@@ -2,11 +2,11 @@ import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule, ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { LucideAngularModule, Trophy, Calendar, ArrowRight, Filter, ThumbsUp, ThumbsDown, BarChart3, Star, Dna, Zap, Brain, CheckCircle2, Target, Award, XCircle, CheckCircle, BookOpen, Flame, Sparkles, Users } from 'lucide-angular';
+import { LucideAngularModule, Trophy, Calendar, ArrowRight, Filter, ThumbsUp, ThumbsDown, BarChart3, Star, Dna, Zap, Brain, CheckCircle2, Target, Award, XCircle, CheckCircle, BookOpen, Flame, Sparkles, Users, Play } from 'lucide-angular';
 import { DataService, CompetitionRanking, Competition, RecommendationProfile, Exercise, ExerciseTask, Training } from '../services/data.service';
 import { AuthService } from '../services/auth.service';
 
-type Tab = 'all' | 'ranking' | 'recommended';
+type Tab = 'all' | 'ranking' | 'recommended' | 'skills';
 
 interface PracticeState {
   exercise: Exercise;
@@ -329,6 +329,14 @@ interface PracticeState {
               <lucide-icon [name]="Sparkles" [size]="16"></lucide-icon>
               For You
             </button>
+            <button (click)="activeTab.set('skills')"
+                    [ngClass]="activeTab() === 'skills'
+                      ? 'border-b-2 border-teal-600 text-teal-600'
+                      : 'text-muted-foreground hover:text-foreground'"
+                    class="flex items-center gap-2 px-5 py-3 font-bold text-sm transition-all -mb-px">
+              <span>🎤</span>
+              Skills Test
+            </button>
           </div>
 
           @if (activeTab() === 'all') {
@@ -468,12 +476,12 @@ interface PracticeState {
                             <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
                             <span [ngClass]="{ 'bg-teal-600': comp.status === 'ongoing', 'bg-orange-500': comp.status === 'upcoming', 'bg-muted-foreground': comp.status === 'completed' }"
                                   class="absolute top-4 left-4 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">{{ comp.status }}</span>
-                            @if (forYouComps().length > 0) {
-                              <span class="absolute top-4 right-4 bg-yellow-400 text-black px-2 py-0.5 rounded-full text-[10px] font-black">Match</span>
+                            @if (comp.aiScore) {
+                               <span class="absolute top-4 right-4 bg-yellow-400 text-black px-2 py-0.5 rounded-full text-[10px] font-black uppercase">AI Match {{ comp.aiScore }}%</span>
                             } @else {
-                              <span class="absolute top-4 right-4 flex items-center gap-1 bg-white/25 text-white px-2 py-0.5 rounded-full text-[10px] font-black">
-                                <lucide-icon [name]="Users" [size]="10"></lucide-icon> {{ (comp.participants || []).length }}
-                              </span>
+                               <span class="absolute top-4 right-4 flex items-center gap-1 bg-white/25 text-white px-2 py-0.5 rounded-full text-[10px] font-black">
+                                 <lucide-icon [name]="Users" [size]="10"></lucide-icon> {{ (comp.participants || []).length }}
+                               </span>
                             }
                           </div>
                           <div class="p-5 flex flex-col flex-1">
@@ -496,7 +504,7 @@ interface PracticeState {
               }
             }
 
-            @if (false) {
+            @if (recommendProfile()) {
               @let prof = recommendProfile()!;
 
               <!-- ── DNA STATS GRID ── -->
@@ -625,7 +633,7 @@ interface PracticeState {
                         <div class="relative aspect-[16/10] overflow-hidden">
                           <img [src]="comp.image" [alt]="comp.title" class="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700">
                           <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
-                          <span class="absolute top-4 right-4 bg-yellow-400 text-black px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">DNA MATCH</span>
+                          <span class="absolute top-4 right-4 bg-yellow-400 text-black px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">AI Match {{ comp.aiScore }}%</span>
                           <span [ngClass]="{
                             'bg-teal-600': comp.status === 'ongoing',
                             'bg-orange-500': comp.status === 'upcoming'
@@ -649,7 +657,54 @@ interface PracticeState {
                 }
               </div>
 
-              <!-- 📚 PILLAR 2: EXERCISES -->
+              <!-- 🎯 PILLAR 2: RE-SKILL CENTER (CAUSAL ROADMAP) -->
+              @if (prof.remedialRoadmap.length > 0) {
+                <div class="space-y-5">
+                  <div class="flex items-center gap-3">
+                    <span class="w-10 h-10 rounded-2xl bg-red-600 text-white flex items-center justify-center text-lg shrink-0">🎯</span>
+                    <div>
+                      <h3 class="text-2xl font-black">Re-Skill Center: Targeted Recovery</h3>
+                      <p class="text-sm text-muted-foreground">The AI has generated specific training paths to fix your recent challenge performance.</p>
+                    </div>
+                  </div>
+                  
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    @for (item of prof.remedialRoadmap; track item.compTitle) {
+                      <div class="bg-red-50/50 border-2 border-red-200 rounded-[2.5rem] p-6 flex flex-col gap-4 relative overflow-hidden group">
+                        <!-- Background glow -->
+                        <div class="absolute -right-10 -bottom-10 w-32 h-32 bg-red-200/30 blur-3xl group-hover:bg-red-300/40 transition-all"></div>
+                        
+                        <div class="flex items-center gap-3">
+                          <div class="w-12 h-12 rounded-2xl bg-white border-2 border-red-100 flex items-center justify-center text-2xl shadow-sm">
+                            {{ item.suggestedExercise.icon }}
+                          </div>
+                          <div>
+                            <p class="text-[10px] font-black uppercase tracking-widest text-red-600">Re-Skill Trigger</p>
+                            <p class="font-bold text-sm line-clamp-1">{{ item.compTitle }}</p>
+                          </div>
+                        </div>
+
+                        <div class="bg-white/80 rounded-2xl p-4 border border-red-100">
+                          <p class="text-xs font-black text-muted-foreground uppercase tracking-widest mb-1">AI Diagnosis</p>
+                          <p class="text-sm font-medium text-red-700 leading-relaxed">{{ item.reason }}</p>
+                        </div>
+
+                        <div class="flex-1">
+                          <h4 class="font-black text-slate-800">{{ item.suggestedExercise.title }}</h4>
+                          <p class="text-xs text-muted-foreground mt-1 line-clamp-2 italic">{{ item.suggestedExercise.description }}</p>
+                        </div>
+
+                        <button (click)="practice.set({ exercise: item.suggestedExercise, currentTask: 0, selectedAnswers: [], confirmed: [], finished: false, score: 0 })"
+                           class="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-black flex items-center justify-center gap-2 text-sm transition-all shadow-lg shadow-red-600/20 active:scale-95">
+                          Start Recovery <lucide-icon [name]="Play" [size]="16"></lucide-icon>
+                        </button>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- 📚 PILLAR 3: EXERCISES -->
               <div class="space-y-5">
                 <div class="flex items-center gap-3">
                   <span class="w-10 h-10 rounded-2xl bg-orange-500 text-white flex items-center justify-center text-lg shrink-0">📚</span>
@@ -713,6 +768,9 @@ interface PracticeState {
                           }" class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest">
                             {{ ex.difficulty }}
                           </span>
+                          @if (prof.weakestCategory && ex.category.toLowerCase().includes(prof.weakestCategory.toLowerCase())) {
+                            <span class="ml-1 bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest animate-pulse">Remedial</span>
+                          }
                         }
                       </div>
 
@@ -907,6 +965,67 @@ interface PracticeState {
             }
           </div>
         }
+        @if (activeTab() === 'skills') {
+          <div class="max-w-4xl mx-auto space-y-12 animate-slideUp">
+            
+            <!-- Hero Promo -->
+            <div class="relative rounded-[3rem] overflow-hidden bg-slate-900 border border-slate-800 shadow-2xl">
+              <div class="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-transparent to-teal-500/20"></div>
+              <div class="relative p-10 md:p-16 flex flex-col md:flex-row items-center gap-12">
+                <div class="flex-1 space-y-8 text-center md:text-left">
+                  <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-black uppercase tracking-widest">
+                    <span class="relative flex h-2 w-2">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                    </span>
+                    AI-Powered Feedback
+                  </div>
+                  <h2 class="text-4xl md:text-6xl font-black text-white leading-tight">
+                    Master Your <span class="text-indigo-400">Fluency</span> <br> 
+                    with Real-Time AI.
+                  </h2>
+                  <p class="text-slate-400 text-lg md:text-xl font-medium max-w-xl">
+                    Our advanced speech recognition analyzes your pronunciation and cadence instantly. 
+                    Perfect your English skills before the next big competition.
+                  </p>
+                  <div class="pt-4">
+                    <a routerLink="/speech-test"
+                       class="inline-flex items-center gap-3 px-10 py-5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-[2rem] font-black text-lg transition-all shadow-xl shadow-indigo-600/20 hover:scale-105 active:scale-95 group">
+                      <lucide-icon [name]="Zap" [size]="24" class="group-hover:animate-bounce text-yellow-300"></lucide-icon>
+                      Start Skills Test
+                    </a>
+                  </div>
+                </div>
+                <div class="relative shrink-0">
+                  <div class="w-64 h-64 md:w-80 md:h-80 rounded-[3rem] bg-indigo-600/10 border-4 border-indigo-500/20 flex items-center justify-center text-9xl relative z-10">
+                    🎤
+                  </div>
+                  <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl"></div>
+                  <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-teal-500/10 rounded-full blur-3xl"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Features Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div class="bg-white p-8 rounded-[2.5rem] border border-border shadow-sm space-y-4">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-2xl font-black">⚙️</div>
+                <h4 class="text-xl font-black">Instant Evaluation</h4>
+                <p class="text-muted-foreground text-sm leading-relaxed font-medium">Get a complete accuracy score (0-100) immediately after speaking your sentence.</p>
+              </div>
+              <div class="bg-white p-8 rounded-[2.5rem] border border-border shadow-sm space-y-4">
+                <div class="w-12 h-12 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center text-2xl font-black">📈</div>
+                <h4 class="text-xl font-black">Adaptive Levels</h4>
+                <p class="text-muted-foreground text-sm leading-relaxed font-medium">Start with basic phrases or challenge yourself with complex technical sentences.</p>
+              </div>
+              <div class="bg-white p-8 rounded-[2.5rem] border border-border shadow-sm space-y-4">
+                <div class="w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center text-2xl font-black">🧬</div>
+                <h4 class="text-xl font-black">DNA Profile Link</h4>
+                <p class="text-muted-foreground text-sm leading-relaxed font-medium">Your skills test performance helps shape your AI Recommendation Profile.</p>
+              </div>
+            </div>
+          </div>
+        }
 
       </div>
     </div>
@@ -944,6 +1063,7 @@ export class CompetitionsComponent implements OnInit {
     readonly Flame = Flame;
     readonly Sparkles = Sparkles;
     readonly Users = Users;
+    readonly Play = Play;
 
     activeTab = signal<Tab>('all');
     ranking = signal<CompetitionRanking[]>([]);
@@ -1044,7 +1164,13 @@ export class CompetitionsComponent implements OnInit {
         this.recommendLoading.set(true);
         this.data.getRecommendations(email).subscribe(comps => {
             this.forYouComps.set(comps ?? []);
-            this.recommendLoading.set(false);
+            this.data.getIntelligentProfile(email).subscribe(profile => {
+                this.recommendProfile.set(profile);
+                if (profile) {
+                    this.recommendations.set(profile.recommendedCompetitions ?? []);
+                }
+                this.recommendLoading.set(false);
+            });
         });
     }
 

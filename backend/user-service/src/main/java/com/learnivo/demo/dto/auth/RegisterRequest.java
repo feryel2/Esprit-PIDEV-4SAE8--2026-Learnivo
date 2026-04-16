@@ -5,13 +5,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class RegisterRequest {
     
     @NotBlank(message = "Email is required")
@@ -33,4 +27,41 @@ public class RegisterRequest {
     
     // Recaptcha
     private String recaptchaToken;
+
+    public RegisterRequest() {}
+
+    public RegisterRequest(String email, String password, Role role, String societyName, String societyEmail, String societyPhone, String societyAddress, String recaptchaToken) {
+        this.email = email;
+        this.password = password;
+        this.role = role;
+        this.societyName = societyName;
+        this.societyEmail = societyEmail;
+        this.societyPhone = societyPhone;
+        this.societyAddress = societyAddress;
+        this.recaptchaToken = recaptchaToken;
+    }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+
+    public String getPassword() { return password; }
+    public void setPassword(String password) { this.password = password; }
+
+    public Role getRole() { return role; }
+    public void setRole(Role role) { this.role = role; }
+
+    public String getSocietyName() { return societyName; }
+    public void setSocietyName(String societyName) { this.societyName = societyName; }
+
+    public String getSocietyEmail() { return societyEmail; }
+    public void setSocietyEmail(String societyEmail) { this.societyEmail = societyEmail; }
+
+    public String getSocietyPhone() { return societyPhone; }
+    public void setSocietyPhone(String societyPhone) { this.societyPhone = societyPhone; }
+
+    public String getSocietyAddress() { return societyAddress; }
+    public void setSocietyAddress(String societyAddress) { this.societyAddress = societyAddress; }
+
+    public String getRecaptchaToken() { return recaptchaToken; }
+    public void setRecaptchaToken(String recaptchaToken) { this.recaptchaToken = recaptchaToken; }
 }

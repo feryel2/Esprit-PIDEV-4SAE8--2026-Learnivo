@@ -763,8 +763,25 @@ export class AdminCompetitionsComponent implements OnInit, OnDestroy {
 
   toggleResults() {
     if (!this.selected()) return;
-    const updated = { ...this.selected()!, resultsPublished: !this.selected()!.resultsPublished };
-    this.data.updateCompetition(updated); this.selected.set(updated);
+    const s = this.selected()!;
+    
+    if (s.resultsPublished) {
+      // Unpublish: simple toggle for now
+      const updated = { ...s, resultsPublished: false };
+      this.data.updateCompetition(updated);
+      this.selected.set(updated);
+    } else {
+      // Publish: use formal workflow with winners calculation
+      if (!confirm("Confirm result publication? This will mark the top 3 participants as winners and set the status to COMPLETED.")) return;
+      
+      this.data.publishResults(s.id).subscribe(res => {
+        if (res) {
+          this.selected.set(res);
+          // Refresh list to show updated status
+          this.data.loadCompetitions();
+        }
+      });
+    }
   }
 
   // ── Participants ──
