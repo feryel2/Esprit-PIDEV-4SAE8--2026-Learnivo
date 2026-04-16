@@ -45,12 +45,12 @@ class QuizServiceSecurityTests {
 
     @Test
     void shouldAllowStudentToGenerateHint() throws Exception {
-        mockMvc.perform(post("/api/quizzes/1/hint")
+        mockMvc.perform(post("/api/quizzes/5/hint")
                         .header("Authorization", "Bearer " + tokenFor("student@learnivo.local", "STUDENT"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "questionId": "fluency-1",
+                                  "questionId": "ielts-2",
                                   "hintLevel": 1
                                 }
                                 """))

@@ -5,7 +5,6 @@ import com.esprit.quizservice.domain.QuizStatus;
 import com.esprit.quizservice.dto.QuizDtos.QuizAnalyticsResponse;
 import com.esprit.quizservice.dto.QuizDtos.QuizAttemptRequest;
 import com.esprit.quizservice.dto.QuizDtos.QuizAttemptResponse;
-import com.esprit.quizservice.dto.QuizDtos.QuizEmailNotification;
 import com.esprit.quizservice.dto.QuizDtos.QuizQuestionReview;
 import com.esprit.quizservice.dto.QuizDtos.QuizRequest;
 import com.esprit.quizservice.dto.QuizDtos.QuizResponse;
@@ -13,7 +12,6 @@ import com.esprit.quizservice.entity.Quiz;
 import com.esprit.quizservice.exception.BadRequestException;
 import com.esprit.quizservice.exception.NotFoundException;
 import com.esprit.quizservice.repository.QuizRepository;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,12 +27,10 @@ public class QuizService {
 
     private final QuizRepository quizRepository;
     private final QuizMapper quizMapper;
-    private final QuizResultEmailService quizResultEmailService;
 
-    public QuizService(QuizRepository quizRepository, QuizMapper quizMapper, QuizResultEmailService quizResultEmailService) {
+    public QuizService(QuizRepository quizRepository, QuizMapper quizMapper) {
         this.quizRepository = quizRepository;
         this.quizMapper = quizMapper;
-        this.quizResultEmailService = quizResultEmailService;
     }
 
     @Transactional(readOnly = true)
@@ -181,7 +177,6 @@ public class QuizService {
         double penaltyPoints = 0;
         double score = baseScore;
         boolean passed = score >= quiz.getPassScore();
-        QuizEmailNotification emailNotification = buildEmailNotification(quiz, request.learnerEmail(), review, score, passed);
 
         return new QuizAttemptResponse(
                 correctAnswers,
@@ -193,8 +188,7 @@ public class QuizService {
                 penaltyPoints,
                 score,
                 passed,
-                review,
-                emailNotification
+                review
         );
     }
 
@@ -272,66 +266,5 @@ public class QuizService {
 
     private double round(double value) {
         return Math.round(value * 10.0) / 10.0;
-    }
-
-    private QuizEmailNotification buildEmailNotification(
-            Quiz quiz,
-            String learnerEmail,
-            List<QuizQuestionReview> review,
-            double score,
-            boolean passed
-    ) {
-        String normalizedEmail = learnerEmail.trim().toLowerCase(Locale.ROOT);
-        long incorrectAnswers = review.stream().filter(item -> !item.correct()).count();
-        long advancedMisses = review.stream()
-                .filter(item -> !item.correct())
-                .filter(item -> "Advanced".equalsIgnoreCase(item.difficulty()))
-                .count();
-        long intermediateMisses = review.stream()
-                .filter(item -> !item.correct())
-                .filter(item -> "Intermediate".equalsIgnoreCase(item.difficulty()))
-                .count();
-
-        List<String> highlights = new ArrayList<>();
-        highlights.add("Score: " + score + "% on " + quiz.getTitle() + ".");
-        highlights.add("Result: " + (passed ? "passed" : "not passed") + " with a target of " + quiz.getPassScore() + "%.");
-
-        if (incorrectAnswers == 0) {
-            highlights.add("You answered every question correctly.");
-        } else if (advancedMisses > 0) {
-            highlights.add("Main review area: advanced questions need more attention.");
-        } else if (intermediateMisses > 0) {
-            highlights.add("Main review area: intermediate questions need more practice.");
-        } else {
-            highlights.add("Main review area: revisit the core concepts before the next attempt.");
-        }
-
-        String subject = passed
-                ? "Quiz passed: " + quiz.getTitle()
-                : "Quiz result: review needed for " + quiz.getTitle();
-        String preview = passed
-                ? "Congratulations, you passed the quiz for " + quiz.getCourse() + " with " + score + "%."
-                : "You scored " + score + "% on " + quiz.getCourse() + ". Review the highlighted topics before retrying.";
-        String callToAction = passed
-                ? "Continue to the next learning milestone or certificate flow."
-                : "Review the course chapters and retry the quiz when you are ready.";
-        QuizResultEmailService.DeliveryResult delivery = quizResultEmailService.sendResultEmail(
-                normalizedEmail,
-                subject,
-                preview,
-                callToAction,
-                highlights
-        );
-
-        return new QuizEmailNotification(
-                normalizedEmail,
-                subject,
-                preview,
-                callToAction,
-                highlights,
-                delivery.delivered(),
-                delivery.deliveryMode(),
-                delivery.statusMessage()
-        );
     }
 }

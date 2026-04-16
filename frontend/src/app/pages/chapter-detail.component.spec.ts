@@ -46,7 +46,7 @@ describe('ChapterDetailComponent', () => {
       correctAnswer: 1,
       explanation: 'Because B is correct.',
       difficulty: 'Intermediate' as const,
-      weight: 2
+      weight: 3
     }
   ];
 
@@ -120,17 +120,7 @@ describe('ChapterDetailComponent', () => {
       penaltyPoints: 0,
       score: 100,
       passed: true,
-      review: [],
-      emailNotification: {
-        recipient: 'student@example.com',
-        subject: 'Quiz result',
-        preview: 'You passed.',
-        callToAction: 'Keep learning',
-        highlights: ['Passed'],
-        delivered: true,
-        deliveryMode: 'SIMULATED',
-        statusMessage: 'Prepared successfully'
-      }
+      review: []
     });
 
     await TestBed.configureTestingModule({
@@ -167,8 +157,6 @@ describe('ChapterDetailComponent', () => {
     component.quizSubmitted.set(false);
     component.quizPassed.set(false);
     component.quizAttempts.set(0);
-    component.learnerEmail.set('');
-    component.learnerEmailError.set('');
     component.questionHints.set({});
     component.hintLoadingQuestionId.set(null);
     component.hintError.set('');
@@ -196,15 +184,15 @@ describe('ChapterDetailComponent', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/courses', training.slug, 2]);
   });
 
-  it('blocks quiz submission when the learner email is invalid', async () => {
+  it('submits quiz answers and stores the result', async () => {
     prepareQuizState();
     component.selectAnswer(0, 1);
-    component.learnerEmail.set('invalid-email');
 
     await component.submitQuiz();
 
-    expect(component.learnerEmailError()).toContain('Enter a valid email');
-    expect(dataServiceMock.evaluateQuiz).not.toHaveBeenCalled();
+    expect(dataServiceMock.evaluateQuiz).toHaveBeenCalledWith(quiz.id, { q1: 1 });
+    expect(component.quizSubmitted()).toBe(true);
+    expect(component.quizScore()).toBe(100);
   });
 
   it('requests and stores a hint for the active quiz question', async () => {
@@ -216,6 +204,18 @@ describe('ChapterDetailComponent', () => {
     expect(component.currentHint('q1')?.hint).toBe('Think about the rule before choosing.');
     expect(component.hintError()).toBe('');
     expect(component.isHintLoading('q1')).toBe(false);
+  });
+
+  it('does not allow hints for questions below weight 3', async () => {
+    prepareQuizState();
+    component.questions.set([{ ...questions[0], weight: 2 }]);
+
+    await component.requestHint(0);
+
+    expect(component.isHintEligible('q1')).toBe(false);
+    expect(component.canRequestHint('q1')).toBe(false);
+    expect(component.hintButtonLabel('q1')).toBe('Hints for weight 3 only');
+    expect(dataServiceMock.getQuizHint).not.toHaveBeenCalled();
   });
 
   it('fails the attempt automatically when the window loses focus during the quiz', async () => {

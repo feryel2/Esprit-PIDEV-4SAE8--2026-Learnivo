@@ -171,17 +171,6 @@ export interface QuizQuestionReview {
     earnedWeight: number;
 }
 
-export interface QuizEmailNotification {
-    recipient: string;
-    subject: string;
-    preview: string;
-    callToAction: string;
-    highlights: string[];
-    delivered: boolean;
-    deliveryMode: 'SMTP' | 'SIMULATED';
-    statusMessage: string;
-}
-
 export interface QuizAttemptResult {
     correctAnswers: number;
     totalQuestions: number;
@@ -193,7 +182,6 @@ export interface QuizAttemptResult {
     score: number;
     passed: boolean;
     review: QuizQuestionReview[];
-    emailNotification: QuizEmailNotification;
 }
 
 export interface QuizHintResult {
@@ -290,7 +278,6 @@ interface QuizAttemptApiResponse {
     score: number;
     passed: boolean;
     review: QuizQuestionReview[];
-    emailNotification: QuizEmailNotification;
 }
 
 interface QuizHintApiResponse {
@@ -676,11 +663,10 @@ export class DataService {
         this.quizzes.update((list) => list.filter((item) => item.id !== id));
     }
 
-    async evaluateQuiz(id: number | string, answers: Record<string, number>, learnerEmail: string) {
+    async evaluateQuiz(id: number | string, answers: Record<string, number>) {
         return await firstValueFrom(
             this.http.post<QuizAttemptApiResponse>(`${this.quizApiUrl}/${id}/evaluate`, {
-                answers,
-                learnerEmail: learnerEmail.trim()
+                answers
             })
         );
     }

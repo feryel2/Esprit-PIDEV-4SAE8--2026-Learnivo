@@ -3,7 +3,6 @@ package com.esprit.quizservice.dto;
 import com.esprit.quizservice.domain.QuizDifficulty;
 import com.esprit.quizservice.domain.QuizStatus;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -93,10 +92,7 @@ public final class QuizDtos {
     ) {
     }
 
-    public record QuizAttemptRequest(
-            @NotNull Map<String, Integer> answers,
-            @NotBlank @Email @Size(max = 160) String learnerEmail
-    ) {
+    public record QuizAttemptRequest(@NotNull Map<String, Integer> answers) {
     }
 
     public record QuizHintRequest(
@@ -129,18 +125,6 @@ public final class QuizDtos {
     ) {
     }
 
-    public record QuizEmailNotification(
-            String recipient,
-            String subject,
-            String preview,
-            String callToAction,
-            List<String> highlights,
-            boolean delivered,
-            String deliveryMode,
-            String statusMessage
-    ) {
-    }
-
     public record QuizAttemptResponse(
             long correctAnswers,
             int totalQuestions,
@@ -151,8 +135,7 @@ public final class QuizDtos {
             double penaltyPoints,
             double score,
             boolean passed,
-            List<QuizQuestionReview> review,
-            QuizEmailNotification emailNotification
+            List<QuizQuestionReview> review
     ) {
     }
 }

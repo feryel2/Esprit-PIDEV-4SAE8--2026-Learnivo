@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { LucideAngularModule, ArrowLeft, FileText, Trophy, Lock, CheckCircle2, X, Lightbulb, Sparkles } from 'lucide-angular';
-import { DataService, Quiz, QuizEmailNotification, QuizHintResult, QuizQuestion, Training, TrainingChapter } from '../services/data.service';
+import { DataService, Quiz, QuizHintResult, QuizQuestion, Training, TrainingChapter } from '../services/data.service';
 import { LearningProgressService } from '../services/learning-progress.service';
 
 @Component({
@@ -36,9 +36,6 @@ export class ChapterDetailComponent {
   quizSubmitted = signal(false);
   quizAttempts = signal(0);
   revealAnswers = signal(false);
-  learnerEmail = signal('');
-  learnerEmailError = signal('');
-  emailNotification = signal<QuizEmailNotification | null>(null);
   loadError = signal('');
   antiCheatTriggered = signal(false);
   antiCheatMessage = signal('');
@@ -135,8 +132,6 @@ export class ChapterDetailComponent {
         this.resultOverlayVisible.set(lastQuizResult.taken);
         this.quizAttempts.set(this.progress.getQuizAttempts(training.slug));
         this.revealAnswers.set(this.progress.shouldRevealQuizAnswers(training.slug));
-        this.learnerEmailError.set('');
-        this.emailNotification.set(null);
         this.antiCheatTriggered.set(false);
         this.antiCheatMessage.set('');
         this.startQuizMonitoring();
@@ -169,8 +164,6 @@ export class ChapterDetailComponent {
       this.quizSubmitted.set(false);
       this.quizAttempts.set(this.progress.getQuizAttempts(training.slug));
       this.revealAnswers.set(this.progress.shouldRevealQuizAnswers(training.slug));
-      this.learnerEmailError.set('');
-      this.emailNotification.set(null);
       this.antiCheatTriggered.set(false);
       this.antiCheatMessage.set('');
       this.restoredStoredResult.set(false);
@@ -186,8 +179,6 @@ export class ChapterDetailComponent {
       this.hintLoadingQuestionId.set(null);
       this.hintError.set('');
       this.isQuizStep.set(false);
-      this.learnerEmailError.set('');
-      this.emailNotification.set(null);
       this.antiCheatTriggered.set(false);
       this.antiCheatMessage.set('');
       this.restoredStoredResult.set(false);
@@ -195,10 +186,6 @@ export class ChapterDetailComponent {
       this.stopQuizMonitoring();
       this.loadError.set('We could not load this course step right now.');
     }
-  }
-
-  hasValidLearnerEmail() {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.learnerEmail().trim());
   }
 
   canTakeQuiz() {
@@ -257,9 +244,17 @@ export class ChapterDetailComponent {
     return this.hintLoadingQuestionId() === questionId;
   }
 
+  isHintEligible(questionId: string) {
+    const question = this.questions().find((item) => item.id === questionId);
+    return (question?.weight ?? 1) === 3;
+  }
+
   canRequestHint(questionId: string) {
     const hint = this.currentHint(questionId);
-    return this.canTakeQuiz() && !this.quizSubmitted() && (hint?.remainingHints ?? 3) > 0;
+    return this.isHintEligible(questionId)
+      && this.canTakeQuiz()
+      && !this.quizSubmitted()
+      && (hint?.remainingHints ?? 3) > 0;
   }
 
   usedHintLevel(questionId: string) {
@@ -273,7 +268,7 @@ export class ChapterDetailComponent {
 
     const hint = this.currentHint(questionId);
     if (!hint) {
-      return 'Get hint';
+      return this.isHintEligible(questionId) ? 'Get hint' : 'Hints for weight 3 only';
     }
 
     return hint.remainingHints > 0 ? 'Get another hint' : 'No hints left';
@@ -317,12 +312,6 @@ export class ChapterDetailComponent {
     const questions = this.questions();
     const training = this.training();
     if (!quiz || questions.length === 0 || !training || !this.canTakeQuiz()) return;
-    if (!this.hasValidLearnerEmail()) {
-      this.learnerEmailError.set('Enter a valid email to receive the quiz result summary.');
-      return;
-    }
-
-    this.learnerEmailError.set('');
 
     const answers = questions.reduce<Record<string, number>>((accumulator, question, index) => {
       const answer = this.selectedAnswers()[index];
@@ -332,7 +321,7 @@ export class ChapterDetailComponent {
       return accumulator;
     }, {});
 
-    const result = await this.data.evaluateQuiz(quiz.id, answers, this.learnerEmail().trim());
+    const result = await this.data.evaluateQuiz(quiz.id, answers);
     const passed = result.passed;
     const progress = this.progress.recordQuizAttempt(training.slug, passed, result.score, result.baseScore);
     this.quizBaseScore.set(result.baseScore);
@@ -341,7 +330,6 @@ export class ChapterDetailComponent {
     this.quizSubmitted.set(true);
     this.quizAttempts.set(progress.quizAttempts);
     this.revealAnswers.set(progress.revealAnswers);
-    this.emailNotification.set(result.emailNotification);
     this.restoredStoredResult.set(false);
     this.resultOverlayVisible.set(true);
     this.stopQuizMonitoring();
@@ -357,7 +345,6 @@ export class ChapterDetailComponent {
     this.quizScore.set(null);
     this.quizBaseScore.set(null);
     this.quizSubmitted.set(false);
-    this.emailNotification.set(null);
     this.antiCheatTriggered.set(false);
     this.antiCheatMessage.set('');
     this.restoredStoredResult.set(false);
@@ -410,7 +397,6 @@ export class ChapterDetailComponent {
     this.quizSubmitted.set(true);
     this.quizAttempts.set(progress.quizAttempts);
     this.revealAnswers.set(progress.revealAnswers);
-    this.emailNotification.set(null);
     this.antiCheatTriggered.set(true);
     this.antiCheatMessage.set(`${message} This attempt has been marked as failed automatically.`);
     this.restoredStoredResult.set(false);

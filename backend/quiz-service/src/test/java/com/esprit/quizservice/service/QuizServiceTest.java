@@ -34,14 +34,11 @@ class QuizServiceTest {
     @Mock
     private QuizRepository quizRepository;
 
-    @Mock
-    private QuizResultEmailService quizResultEmailService;
-
     private QuizService quizService;
 
     @BeforeEach
     void setUp() {
-        quizService = new QuizService(quizRepository, new QuizMapper(), quizResultEmailService);
+        quizService = new QuizService(quizRepository, new QuizMapper());
     }
 
     @Test
@@ -209,10 +206,8 @@ class QuizServiceTest {
         quiz.setItems(List.of(question));
 
         when(quizRepository.findById(5L)).thenReturn(Optional.of(quiz));
-        when(quizResultEmailService.sendResultEmail(any(), any(), any(), any(), any()))
-                .thenReturn(new QuizResultEmailService.DeliveryResult(false, "SIMULATED", "Mail disabled"));
 
-        var response = quizService.evaluate(5L, new QuizAttemptRequest(Map.of("q1", 2), "learner@test.com"));
+        var response = quizService.evaluate(5L, new QuizAttemptRequest(Map.of("q1", 2)));
 
         assertEquals(3, response.totalWeight());
         assertEquals(3, response.earnedWeight());

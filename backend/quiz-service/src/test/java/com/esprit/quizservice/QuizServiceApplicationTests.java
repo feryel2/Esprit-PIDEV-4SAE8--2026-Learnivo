@@ -39,38 +39,48 @@ class QuizServiceApplicationTests {
                                     "fluency-1": 0,
                                     "fluency-2": 0,
                                     "fluency-3": 2
-                                  },
-                                  "learnerEmail": "demo@test.com"
+                                  }
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.passed").value(true))
                 .andExpect(jsonPath("$.baseScore").value(100.0))
                 .andExpect(jsonPath("$.bonusPoints").value(0.0))
-                .andExpect(jsonPath("$.score").value(100.0))
-                .andExpect(jsonPath("$.emailNotification.recipient").value("demo@test.com"))
-                .andExpect(jsonPath("$.emailNotification.delivered").value(false))
-                .andExpect(jsonPath("$.emailNotification.deliveryMode").value("SIMULATED"));
+                .andExpect(jsonPath("$.score").value(100.0));
     }
 
     @Test
     void shouldGenerateLocalHintForQuizQuestion() throws Exception {
-        mockMvc.perform(post("/api/quizzes/1/hint")
+        mockMvc.perform(post("/api/quizzes/5/hint")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "questionId": "fluency-1",
+                                  "questionId": "ielts-2",
                                   "hintLevel": 2,
                                   "userAnswer": 1
                                 }
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.quizId").value(1))
-                .andExpect(jsonPath("$.questionId").value("fluency-1"))
+                .andExpect(jsonPath("$.quizId").value(5))
+                .andExpect(jsonPath("$.questionId").value("ielts-2"))
                 .andExpect(jsonPath("$.hintLevel").value(2))
                 .andExpect(jsonPath("$.remainingHints").value(1))
                 .andExpect(jsonPath("$.source").value("LOCAL_FALLBACK"))
                 .andExpect(jsonPath("$.hint").isNotEmpty());
+    }
+
+    @Test
+    void shouldRejectHintRequestForQuestionBelowWeightThree() throws Exception {
+        mockMvc.perform(post("/api/quizzes/1/hint")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "questionId": "fluency-1",
+                                  "hintLevel": 1
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Hints are available only for weight 3 questions."));
     }
 
     @Test
@@ -97,8 +107,7 @@ class QuizServiceApplicationTests {
                                     "business-1": 0,
                                     "business-2": 1,
                                     "business-3": 0
-                                  },
-                                  "learnerEmail": "learner@test.com"
+                                  }
                                 }
                                 """))
                 .andExpect(status().isOk())
@@ -109,8 +118,7 @@ class QuizServiceApplicationTests {
                 .andExpect(jsonPath("$.bonusPoints").value(0.0))
                 .andExpect(jsonPath("$.penaltyPoints").value(0.0))
                 .andExpect(jsonPath("$.score").value(66.7))
-                .andExpect(jsonPath("$.passed").value(false))
-                .andExpect(jsonPath("$.emailNotification.subject").value("Quiz result: review needed for Business English Meeting Check"));
+                .andExpect(jsonPath("$.passed").value(false));
     }
 
     @Test

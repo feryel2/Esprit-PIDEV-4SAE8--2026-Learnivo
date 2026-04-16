@@ -64,6 +64,7 @@ public class QuizHintService {
                 .orElseThrow(() -> new NotFoundException("Question not found with id: " + request.questionId()));
 
         validateUserAnswer(request.userAnswer());
+        validateHintEligibility(quiz, question);
 
         HintResult generated = generateRemoteHint(quiz, question, request)
                 .orElseGet(() -> new HintResult(buildLocalHint(quiz, question, request), "LOCAL_FALLBACK"));
@@ -228,6 +229,24 @@ public class QuizHintService {
         if (userAnswer != null && (userAnswer < 0 || userAnswer > 3)) {
             throw new BadRequestException("User answer must be between 0 and 3.");
         }
+    }
+
+    private void validateHintEligibility(Quiz quiz, QuizQuestion question) {
+        int effectiveWeight = question.getWeight() == null
+                ? weightFor(question.getDifficulty() == null ? quiz.getDifficulty() : question.getDifficulty())
+                : question.getWeight();
+        if (effectiveWeight != 3) {
+            throw new BadRequestException("Hints are available only for weight 3 questions.");
+        }
+    }
+
+    private int weightFor(QuizDifficulty difficulty) {
+        QuizDifficulty safeDifficulty = difficulty == null ? QuizDifficulty.BEGINNER : difficulty;
+        return switch (safeDifficulty) {
+            case BEGINNER -> 1;
+            case INTERMEDIATE -> 2;
+            case ADVANCED -> 3;
+        };
     }
 
     private String optionAt(QuizQuestion question, Integer index) {
