@@ -37,12 +37,13 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQubeServer') {
+                withSonarQubeEnv('sonar') {
                     dir('backend/competition-service') {
                         sh """
-                            mvn sonar:sonar \
-                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.projectName='${SONAR_PROJECT_NAME}'
+                        mvn sonar:sonar \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                        -Dsonar.projectName='${SONAR_PROJECT_NAME}' \
+                        -Dsonar.host.url=http://localhost:9000
                         """
                     }
                 }
@@ -53,12 +54,6 @@ pipeline {
     post {
         always {
             junit 'backend/competition-service/target/surefire-reports/*.xml'
-        }
-        success {
-            echo 'Competition Service pipeline completed successfully!'
-        }
-        failure {
-            echo 'Competition Service pipeline failed.'
         }
     }
 }
