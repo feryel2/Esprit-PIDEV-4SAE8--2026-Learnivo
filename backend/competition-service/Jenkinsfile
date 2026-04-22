@@ -1,0 +1,73 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven 3.x'
+        jdk 'JDK 17'
+    }
+
+    environment {
+        // Define SonarQube properties if not in pom.xml
+        SONAR_PROJECT_KEY = 'competition-service'
+        SONAR_PROJECT_NAME = 'Competition Service'
+    }
+
+    stages {
+        stage('Build') {
+            steps {
+                script {
+                    // Check if we are in the service directory or root
+                    if (fileExists('pom.xml')) {
+                        sh 'mvn clean compile -DskipTests'
+                    } else {
+                        dir('backend/competition-service') {
+                            sh 'mvn clean compile -DskipTests'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                script {
+                    if (fileExists('pom.xml')) {
+                        sh 'mvn test'
+                    } else {
+                        dir('backend/competition-service') {
+                            sh 'mvn test'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQubeServer') { // Ensure this matches your Jenkins configuration
+                    script {
+                        if (fileExists('pom.xml')) {
+                            sh "mvn sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.projectName='${SONAR_PROJECT_NAME}'"
+                        } else {
+                            dir('backend/competition-service') {
+                                sh "mvn sonar:sonar -Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.projectName='${SONAR_PROJECT_NAME}'"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            junit '**/target/surefire-reports/*.xml'
+        }
+        success {
+            echo 'Pipeline successfully completed!'
+        }
+        failure {
+            echo 'Pipeline failed. Check the logs.'
+        }
+    }
+}
