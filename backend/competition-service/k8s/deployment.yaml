@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: competition-service
+  labels:
+    app: competition-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: competition-service
+  template:
+    metadata:
+      labels:
+        app: competition-service
+    spec:
+      containers:
+        - name: competition-service
+          image: hazemank/pi-competition:latest
+          ports:
+            - containerPort: 8082
+          imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: competition-service
+spec:
+  selector:
+    app: competition-service
+  ports:
+    - protocol: TCP
+      port: 8082
+      targetPort: 8082
+  type: ClusterIP

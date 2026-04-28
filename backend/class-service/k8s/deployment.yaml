@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: class-service
+  labels:
+    app: class-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: class-service
+  template:
+    metadata:
+      labels:
+        app: class-service
+    spec:
+      containers:
+        - name: class-service
+          image: hazemank/pi:latest
+          ports:
+            - containerPort: 9090
+          imagePullPolicy: Always
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: class-service
+spec:
+  selector:
+    app: class-service
+  ports:
+    - protocol: TCP
+      port: 9090
+      targetPort: 9090
+  type: ClusterIP
