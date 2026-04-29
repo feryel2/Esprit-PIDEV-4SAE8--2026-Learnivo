@@ -13,6 +13,14 @@ pipeline {
             }
         }
 
+        stage('Build Maven') {
+            steps {
+                dir('backend/class-service') {
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 dir('backend/class-service') {
@@ -45,6 +53,15 @@ pipeline {
                     sh 'kubectl apply -f k8s/deployment.yaml'
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline SUCCESS 🚀'
+        }
+        failure {
+            echo 'Pipeline FAILED ❌'
         }
     }
 }
