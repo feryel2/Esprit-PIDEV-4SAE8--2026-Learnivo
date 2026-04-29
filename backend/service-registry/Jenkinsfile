@@ -1,0 +1,63 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven 3.x'
+        jdk 'JDK 17'
+    }
+
+    environment {
+        SONAR_PROJECT_KEY = 'service-registry'
+        SONAR_PROJECT_NAME = 'Service Registry'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir('backend/service-registry') {
+                    sh 'mvn clean compile -DskipTests'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir('backend/service-registry') {
+                    sh 'mvn test'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    dir('backend/service-registry') {
+                        sh """
+                        mvn sonar:sonar \\
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
+                        -Dsonar.projectName='${SONAR_PROJECT_NAME}' \\
+                        -Dsonar.host.url=http://localhost:9000
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            junit 'backend/service-registry/target/surefire-reports/*.xml'
+        }
+
+        success {
+            build job: 'registry-cd', wait: false
+        }
+    }
+}

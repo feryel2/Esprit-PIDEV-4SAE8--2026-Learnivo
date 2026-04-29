@@ -1,0 +1,63 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven 3.x'
+        jdk 'JDK 17'
+    }
+
+    environment {
+        SONAR_PROJECT_KEY = 'api-gateway'
+        SONAR_PROJECT_NAME = 'API Gateway'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir('backend/api-gateway') {
+                    sh 'mvn clean compile -DskipTests'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir('backend/api-gateway') {
+                    sh 'mvn test'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonar') {
+                    dir('backend/api-gateway') {
+                        sh """
+                        mvn sonar:sonar \\
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
+                        -Dsonar.projectName='${SONAR_PROJECT_NAME}' \\
+                        -Dsonar.host.url=http://localhost:9000
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            junit 'backend/api-gateway/target/surefire-reports/*.xml'
+        }
+
+        success {
+            build job: 'gateway-cd', wait: false
+        }
+    }
+}
