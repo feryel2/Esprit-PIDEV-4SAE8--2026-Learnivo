@@ -55,5 +55,9 @@ pipeline {
         always {
             junit 'backend/class-service/target/surefire-reports/*.xml'
         }
+
+        success {
+            build job: 'class-cd', wait: false
+        }
     }
 }
