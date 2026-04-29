@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'hazemank/pi'
+        KUBECONFIG = "/var/lib/jenkins/.kube/config"
+
     }
 
     stages {
@@ -13,38 +15,67 @@ pipeline {
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Build Maven') {
             steps {
                 dir('backend/class-service') {
-                    sh 'docker build -t $IMAGE_NAME:latest .'
+                    sh 'mvn clean package -DskipTests'
                 }
             }
         }
 
-        stage('Login to DockerHub') {
+        stage('Docker Login (before build)') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds',
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    '''
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir('backend/class-service') {
+                    sh '''
+                        docker pull amazoncorretto:17-alpine || true
+                        docker build --no-cache -t $IMAGE_NAME:latest .
+                    '''
                 }
             }
         }
 
         stage('Push Docker Image') {
             steps {
-                sh 'docker push $IMAGE_NAME:latest'
+                sh '''
+                    docker push $IMAGE_NAME:latest
+                '''
             }
         }
 
         stage('Deploy to Kubernetes') {
             steps {
                 dir('backend/class-service') {
-                    sh 'kubectl apply -f k8s/deployment.yaml'
+                    sh '''
+                        kubectl apply -f k8s/deployment.yaml
+                    '''
                 }
             }
+        }
+    }
+
+    post {
+        success {
+            echo 'Pipeline SUCCESS 🚀'
+        }
+        failure {
+            echo 'Pipeline FAILED ❌'
+        }
+        always {
+            sh 'docker logout || true'
         }
     }
 }

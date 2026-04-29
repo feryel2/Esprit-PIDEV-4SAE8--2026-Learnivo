@@ -55,5 +55,9 @@ pipeline {
         always {
             junit 'backend/competition-service/target/surefire-reports/*.xml'
         }
+
+        success {
+            build job: 'competition-cd', wait: false
+        }
     }
 }
