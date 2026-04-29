@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'hazemank/pi'
+        KUBECONFIG = "/var/lib/jenkins/.kube/config"
+
     }
 
     stages {
