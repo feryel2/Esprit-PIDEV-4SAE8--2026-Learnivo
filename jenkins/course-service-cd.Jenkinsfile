@@ -48,11 +48,11 @@ pipeline {
                     docker run -d \
                       --name ${env.CONTAINER_NAME} \
                       -p ${env.HOST_PORT}:${env.CONTAINER_PORT} \
-                      -e SPRING_PROFILES_ACTIVE=local \
-                      -e EUREKA_CLIENT_ENABLED=false \
-                      -e APP_SECURITY_ENABLED=false \
-                      -e SPRING_DATASOURCE_URL=jdbc:h2:file:/tmp/course_service_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE \
-                      -e APP_UPLOAD_DIR=/tmp/uploads \
+                      -e 'SPRING_PROFILES_ACTIVE=local' \
+                      -e 'EUREKA_CLIENT_ENABLED=false' \
+                      -e 'APP_SECURITY_ENABLED=false' \
+                      -e 'SPRING_DATASOURCE_URL=jdbc:h2:file:/tmp/course_service_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE' \
+                      -e 'APP_UPLOAD_DIR=/tmp/uploads' \
                       ${env.IMAGE_NAME}:${env.BUILD_NUMBER}
                 """
             }
