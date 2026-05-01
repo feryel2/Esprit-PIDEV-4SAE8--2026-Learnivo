@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    tools {
+        jdk 'JDK17'
+        maven 'Maven3'
+    }
+
     parameters {
         string(name: 'UPSTREAM_BUILD', defaultValue: '', description: 'CI build number that triggered this deployment.')
     }
@@ -17,7 +22,6 @@ pipeline {
         CONTAINER_NAME = 'learnivo-course-service'
         HOST_PORT = '8081'
         CONTAINER_PORT = '8081'
-        MAVEN_IMAGE = 'maven:3.9.11-eclipse-temurin-17'
     }
 
     stages {
@@ -29,15 +33,11 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    docker.image(env.MAVEN_IMAGE).inside('-v /var/run/docker.sock:/var/run/docker.sock -v jenkins-m2-cache:/root/.m2') {
-                        sh """
-                            mvn -f ${env.POM_PATH} -pl ${env.SERVICE_NAME} -am -DskipTests \
-                              spring-boot:build-image \
-                              -Dspring-boot.build-image.imageName=${env.IMAGE_NAME}:${env.BUILD_NUMBER}
-                        """
-                    }
-                }
+                sh """
+                    mvn -f ${env.POM_PATH} -pl ${env.SERVICE_NAME} -am -DskipTests \
+                      spring-boot:build-image \
+                      -Dspring-boot.build-image.imageName=${env.IMAGE_NAME}:${env.BUILD_NUMBER}
+                """
             }
         }
 
