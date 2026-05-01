@@ -14,6 +14,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
+                deleteDir()
                 checkout scm
             }
         }
@@ -66,7 +67,8 @@ pipeline {
             build job: 'frontend-cd',
                 wait: false,
                 parameters: [
-                    string(name: 'UPSTREAM_BUILD', value: env.BUILD_NUMBER)
+                    string(name: 'UPSTREAM_BUILD', value: env.BUILD_NUMBER),
+                    string(name: 'GIT_COMMIT_SHA', value: env.GIT_COMMIT)
                 ]
         }
     }

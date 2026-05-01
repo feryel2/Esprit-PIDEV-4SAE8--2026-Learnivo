@@ -3,6 +3,7 @@ pipeline {
 
     parameters {
         string(name: 'UPSTREAM_BUILD', defaultValue: '', description: 'CI build number that triggered this deployment.')
+        string(name: 'GIT_COMMIT_SHA', defaultValue: '', description: 'Exact Git commit produced by the CI pipeline.')
     }
 
     options {
@@ -15,13 +16,18 @@ pipeline {
         CONTAINER_NAME = 'learnivo-frontend'
         HOST_PORT = '4200'
         CONTAINER_PORT = '80'
-        SMOKE_TEST_URL = 'http://host.docker.internal:4200'
     }
 
     stages {
         stage('Checkout') {
             steps {
+                deleteDir()
                 checkout scm
+                script {
+                    if (params.GIT_COMMIT_SHA?.trim()) {
+                        sh "git checkout ${params.GIT_COMMIT_SHA}"
+                    }
+                }
             }
         }
 
@@ -52,7 +58,7 @@ pipeline {
             steps {
                 sh """
                     for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
-                      if curl -fsS '${env.SMOKE_TEST_URL}' > /dev/null; then
+                      if docker exec ${env.CONTAINER_NAME} sh -lc "wget -q -O /dev/null http://127.0.0.1:${env.CONTAINER_PORT}"; then
                         exit 0
                       fi
                       sleep 5
