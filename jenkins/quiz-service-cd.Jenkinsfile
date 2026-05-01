@@ -51,6 +51,7 @@ pipeline {
                       -e SPRING_PROFILES_ACTIVE=local \
                       -e EUREKA_CLIENT_ENABLED=false \
                       -e APP_SECURITY_ENABLED=false \
+                      -e SPRING_DATASOURCE_URL=jdbc:h2:file:/tmp/quiz_service_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE \
                       ${env.IMAGE_NAME}:${env.BUILD_NUMBER}
                 """
             }
