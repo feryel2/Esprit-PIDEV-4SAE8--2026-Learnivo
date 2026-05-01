@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    tools {
+        jdk 'JDK17'
+        maven 'Maven3'
+    }
+
     options {
         disableConcurrentBuilds()
         timestamps()
@@ -8,9 +13,7 @@ pipeline {
 
     environment {
         SERVICE_NAME = 'course-service'
-        MODULE_PATH = 'backend/course-service'
         POM_PATH = 'backend/pom.xml'
-        MAVEN_IMAGE = 'maven:3.9.11-eclipse-temurin-17'
     }
 
     stages {
@@ -22,21 +25,13 @@ pipeline {
 
         stage('Unit Tests') {
             steps {
-                script {
-                    docker.image(env.MAVEN_IMAGE).inside('-v jenkins-m2-cache:/root/.m2') {
-                        sh "mvn -f ${env.POM_PATH} -pl ${env.SERVICE_NAME} -am test"
-                    }
-                }
+                sh "mvn -f ${env.POM_PATH} -pl ${env.SERVICE_NAME} -am test"
             }
         }
 
         stage('Package Jar') {
             steps {
-                script {
-                    docker.image(env.MAVEN_IMAGE).inside('-v jenkins-m2-cache:/root/.m2') {
-                        sh "mvn -f ${env.POM_PATH} -pl ${env.SERVICE_NAME} -am -DskipTests package"
-                    }
-                }
+                sh "mvn -f ${env.POM_PATH} -pl ${env.SERVICE_NAME} -am -DskipTests package"
             }
         }
 
