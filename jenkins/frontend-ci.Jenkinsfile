@@ -26,7 +26,7 @@ pipeline {
                       -v "$WORKSPACE:/workspace" \
                       -w /workspace/${env.FRONTEND_DIR} \
                       ${env.NODE_TEST_IMAGE} \
-                      bash -lc "npm ci"
+                      bash -lc "npm install"
                 """
             }
         }
