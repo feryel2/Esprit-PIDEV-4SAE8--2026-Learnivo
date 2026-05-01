@@ -1,3 +1,30 @@
+def runFrontendCommandInContainer(String command, List<String> copyBackPaths = []) {
+    def escapedCommand = command.replace("'", "'\"'\"'")
+    def copyBackScript = copyBackPaths.collect { path ->
+        """
+            docker cp "\$cid:/workspace/${env.FRONTEND_DIR}/${path}" "$WORKSPACE/${env.FRONTEND_DIR}/" >/dev/null 2>&1 || true
+        """.stripIndent().trim()
+    }.join('\n')
+
+    sh """
+        set -eu
+        cid=\$(docker create \\
+          --workdir /workspace/${env.FRONTEND_DIR} \\
+          ${env.NODE_TEST_IMAGE} \\
+          bash -lc '${escapedCommand}')
+        cleanup() {
+            docker rm -f "\$cid" >/dev/null 2>&1 || true
+        }
+        trap cleanup EXIT
+
+        # The Jenkins workspace lives inside the Jenkins container, so copy it into
+        # the test container instead of bind-mounting a host path that Docker cannot see.
+        docker cp "$WORKSPACE/." "\$cid:/workspace"
+        docker start -a "\$cid"
+        ${copyBackScript}
+    """
+}
+
 pipeline {
     agent any
 
@@ -21,37 +48,25 @@ pipeline {
 
         stage('Install Dependencies') {
             steps {
-                sh """
-                    docker run --rm \
-                      -v "$WORKSPACE:/workspace" \
-                      -w /workspace/${env.FRONTEND_DIR} \
-                      ${env.NODE_TEST_IMAGE} \
-                      bash -lc "npm install"
-                """
+                script {
+                    runFrontendCommandInContainer('npm install', ['node_modules', 'package-lock.json'])
+                }
             }
         }
 
         stage('Unit Tests') {
             steps {
-                sh """
-                    docker run --rm \
-                      -v "$WORKSPACE:/workspace" \
-                      -w /workspace/${env.FRONTEND_DIR} \
-                      ${env.NODE_TEST_IMAGE} \
-                      bash -lc "npm run test -- --watch=false"
-                """
+                script {
+                    runFrontendCommandInContainer('npm run test -- --watch=false', ['coverage'])
+                }
             }
         }
 
         stage('Production Build') {
             steps {
-                sh """
-                    docker run --rm \
-                      -v "$WORKSPACE:/workspace" \
-                      -w /workspace/${env.FRONTEND_DIR} \
-                      ${env.NODE_TEST_IMAGE} \
-                      bash -lc "npm run build"
-                """
+                script {
+                    runFrontendCommandInContainer('npm run build', ['dist'])
+                }
             }
         }
 
