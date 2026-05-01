@@ -22,6 +22,7 @@ pipeline {
         CONTAINER_NAME = 'learnivo-course-service'
         HOST_PORT = '8081'
         CONTAINER_PORT = '8081'
+        SMOKE_TEST_URL = 'http://host.docker.internal:8081/v3/api-docs'
     }
 
     stages {
@@ -62,7 +63,7 @@ pipeline {
             steps {
                 sh """
                     for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
-                      if curl -fsS http://localhost:${env.HOST_PORT}/v3/api-docs > /dev/null; then
+                      if curl -fsS '${env.SMOKE_TEST_URL}' > /dev/null; then
                         exit 0
                       fi
                       sleep 5
