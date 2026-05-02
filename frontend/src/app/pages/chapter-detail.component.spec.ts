@@ -64,26 +64,32 @@ describe('ChapterDetailComponent', () => {
   };
 
   const dataServiceMock = {
-    getPublishedTrainingBySlug: vi.fn<() => Promise<Training>>(),
-    getQuizByCourseTitle: vi.fn<() => Promise<Quiz | null>>(),
-    getQuizQuestions: vi.fn<() => typeof questions>(),
-    getQuizHint: vi.fn<() => Promise<QuizHintResult>>(),
-    evaluateQuiz: vi.fn<() => Promise<QuizAttemptResult>>()
+    getPublishedTrainingBySlug: jasmine.createSpy('getPublishedTrainingBySlug'),
+    getQuizByCourseTitle: jasmine.createSpy('getQuizByCourseTitle'),
+    getQuizQuestions: jasmine.createSpy('getQuizQuestions'),
+    getQuizHint: jasmine.createSpy('getQuizHint'),
+    evaluateQuiz: jasmine.createSpy('evaluateQuiz')
   };
 
   const progressServiceMock = {
-    syncQuizState: vi.fn(),
-    getProgressPercent: vi.fn(() => 25),
-    isQuizUnlocked: vi.fn(() => true),
-    getNextUnlockedIncompleteChapter: vi.fn<(currentTraining: Training) => TrainingChapter | null>(() => null),
-    getLastQuizResult: vi.fn(() => ({ taken: false, score: null, baseScore: null, status: null })),
-    hasPassedQuiz: vi.fn(() => false),
-    getQuizAttempts: vi.fn(() => 0),
-    shouldRevealQuizAnswers: vi.fn(() => false),
-    isChapterUnlocked: vi.fn((currentTraining: Training, chapterNumber: number) => chapterNumber === 1),
-    isChapterCompleted: vi.fn(() => false),
-    markChapterCompleted: vi.fn(),
-    recordQuizAttempt: vi.fn(() => ({
+    syncQuizState: jasmine.createSpy('syncQuizState'),
+    getProgressPercent: jasmine.createSpy('getProgressPercent').and.returnValue(25),
+    isQuizUnlocked: jasmine.createSpy('isQuizUnlocked').and.returnValue(true),
+    getNextUnlockedIncompleteChapter: jasmine
+      .createSpy('getNextUnlockedIncompleteChapter')
+      .and.returnValue(null as TrainingChapter | null),
+    getLastQuizResult: jasmine
+      .createSpy('getLastQuizResult')
+      .and.returnValue({ taken: false, score: null, baseScore: null, status: null }),
+    hasPassedQuiz: jasmine.createSpy('hasPassedQuiz').and.returnValue(false),
+    getQuizAttempts: jasmine.createSpy('getQuizAttempts').and.returnValue(0),
+    shouldRevealQuizAnswers: jasmine.createSpy('shouldRevealQuizAnswers').and.returnValue(false),
+    isChapterUnlocked: jasmine
+      .createSpy('isChapterUnlocked')
+      .and.callFake((currentTraining: Training, chapterNumber: number) => chapterNumber === 1),
+    isChapterCompleted: jasmine.createSpy('isChapterCompleted').and.returnValue(false),
+    markChapterCompleted: jasmine.createSpy('markChapterCompleted'),
+    recordQuizAttempt: jasmine.createSpy('recordQuizAttempt').and.returnValue({
       quizAttempts: 1,
       quizPassed: false,
       revealAnswers: false,
@@ -91,18 +97,34 @@ describe('ChapterDetailComponent', () => {
       lastQuizScore: 0,
       lastQuizBaseScore: 0,
       lastQuizStatus: 'failed'
-    }))
+    })
   };
 
   beforeEach(async () => {
-    vi.clearAllMocks();
+    dataServiceMock.getPublishedTrainingBySlug.calls.reset();
+    dataServiceMock.getQuizByCourseTitle.calls.reset();
+    dataServiceMock.getQuizQuestions.calls.reset();
+    dataServiceMock.getQuizHint.calls.reset();
+    dataServiceMock.evaluateQuiz.calls.reset();
+    progressServiceMock.syncQuizState.calls.reset();
+    progressServiceMock.getProgressPercent.calls.reset();
+    progressServiceMock.isQuizUnlocked.calls.reset();
+    progressServiceMock.getNextUnlockedIncompleteChapter.calls.reset();
+    progressServiceMock.getLastQuizResult.calls.reset();
+    progressServiceMock.hasPassedQuiz.calls.reset();
+    progressServiceMock.getQuizAttempts.calls.reset();
+    progressServiceMock.shouldRevealQuizAnswers.calls.reset();
+    progressServiceMock.isChapterUnlocked.calls.reset();
+    progressServiceMock.isChapterCompleted.calls.reset();
+    progressServiceMock.markChapterCompleted.calls.reset();
+    progressServiceMock.recordQuizAttempt.calls.reset();
 
     routeParams$ = new BehaviorSubject({ slug: training.slug, chapterId: '1' });
 
-    dataServiceMock.getPublishedTrainingBySlug.mockResolvedValue(training);
-    dataServiceMock.getQuizByCourseTitle.mockResolvedValue(quiz);
-    dataServiceMock.getQuizQuestions.mockReturnValue(questions);
-    dataServiceMock.getQuizHint.mockResolvedValue({
+    dataServiceMock.getPublishedTrainingBySlug.and.resolveTo(training);
+    dataServiceMock.getQuizByCourseTitle.and.resolveTo(quiz);
+    dataServiceMock.getQuizQuestions.and.returnValue(questions);
+    dataServiceMock.getQuizHint.and.resolveTo({
       quizId: quiz.id,
       questionId: 'q1',
       hint: 'Think about the rule before choosing.',
@@ -110,7 +132,7 @@ describe('ChapterDetailComponent', () => {
       remainingHints: 2,
       source: 'AI'
     });
-    dataServiceMock.evaluateQuiz.mockResolvedValue({
+    dataServiceMock.evaluateQuiz.and.resolveTo({
       correctAnswers: 1,
       totalQuestions: 1,
       baseScore: 100,
@@ -136,7 +158,7 @@ describe('ChapterDetailComponent', () => {
     fixture = TestBed.createComponent(ChapterDetailComponent);
     component = fixture.componentInstance;
     router = TestBed.inject(Router);
-    vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    spyOn(router, 'navigate').and.resolveTo(true);
 
     await fixture.whenStable();
     fixture.detectChanges();
@@ -174,9 +196,7 @@ describe('ChapterDetailComponent', () => {
   });
 
   it('marks the current chapter as completed and navigates to the next unlocked chapter', async () => {
-    progressServiceMock.getNextUnlockedIncompleteChapter.mockImplementation(
-      () => training.chaptersData?.[1] ?? null
-    );
+    progressServiceMock.getNextUnlockedIncompleteChapter.and.callFake(() => training.chaptersData?.[1] ?? null);
 
     await component.markCurrentChapterCompleted();
 

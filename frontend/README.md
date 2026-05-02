@@ -50,11 +50,19 @@ This will compile your project and store the build artifacts in the `dist/` dire
 
 ## Running unit tests
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+To execute unit tests with the Jasmine runner, use the following command:
 
 ```bash
 ng test
 ```
+
+For CI and SonarQube coverage collection, run:
+
+```bash
+npm run test:ci
+```
+
+This generates the coverage report used by SonarQube at `coverage/frontend-v21/lcov.info`.
 
 ## Running end-to-end tests
 

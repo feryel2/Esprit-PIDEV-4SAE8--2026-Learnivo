@@ -57,7 +57,7 @@ pipeline {
         stage('Unit Tests') {
             steps {
                 script {
-                    runFrontendCommandInContainer('npm run test -- --watch=false', ['coverage'])
+                    runFrontendCommandInContainer('npm run test:ci', ['coverage'])
                 }
             }
         }
