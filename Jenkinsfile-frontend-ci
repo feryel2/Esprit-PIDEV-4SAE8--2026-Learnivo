@@ -13,7 +13,7 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage('Test SonarQube Analysis') {
             steps {
                 dir('frontend') {
                     withSonarQubeEnv('sonariyadh') {
@@ -22,20 +22,15 @@ pipeline {
                             -Dsonar.projectKey=learnivo-frontend \
                             -Dsonar.projectName="Learnivo Frontend" \
                             -Dsonar.sources=src/app \
+                            -Dsonar.inclusions=src/app/**/*.ts \
                             -Dsonar.host.url=http://localhost:9000 \
-                            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/.angular/**,**/coverage/**,**/*.spec.ts,**/*.test.ts \
+                            -Dsonar.exclusions=**/*.spec.ts,**/*.test.ts,**/node_modules/**,**/dist/**,**/build/**,**/.angular/**,**/coverage/** \
                             -Dsonar.scm.disabled=true \
                             -Dsonar.sourceEncoding=UTF-8
                         '''
                     }
                 }
             }
-        }
-    }
-
-    post {
-        success {
-            build job: 'iyadh-frontend-cd', wait: false
         }
     }
 }
