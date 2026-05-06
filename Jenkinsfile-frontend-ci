@@ -4,6 +4,7 @@ pipeline {
     environment {
         SONAR_PROJECT_KEY = 'learnivo-frontend'
         SONAR_PROJECT_NAME = 'Learnivo Frontend'
+        SONAR_SCANNER_HOME = "${WORKSPACE}/sonar-scanner"
     }
 
     stages {
@@ -49,8 +50,25 @@ pipeline {
             steps {
                 dir('frontend') {
                     echo 'Skipping tests for now'
-                    // sh 'npm run test -- --watch=false --browsers=ChromeHeadless'
                 }
+            }
+        }
+
+        stage('Install SonarScanner') {
+            steps {
+                sh '''
+                    rm -rf sonar-scanner sonar-scanner.zip
+
+                    wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+
+                    unzip sonar-scanner.zip
+
+                    mv sonar-scanner-5.0.1.3006-linux sonar-scanner
+
+                    chmod +x sonar-scanner/bin/sonar-scanner
+
+                    sonar-scanner/bin/sonar-scanner -v
+                '''
             }
         }
 
@@ -59,7 +77,7 @@ pipeline {
                 dir('frontend') {
                     withSonarQubeEnv('sonariyadh') {
                         sh '''
-                            sonar-scanner \
+                            ../sonar-scanner/bin/sonar-scanner \
                             -Dsonar.projectKey=learnivo-frontend \
                             -Dsonar.projectName="Learnivo Frontend" \
                             -Dsonar.sources=src \
