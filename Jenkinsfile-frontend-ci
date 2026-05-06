@@ -42,16 +42,14 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                dir('frontend') {
-                    withSonarQubeEnv('sonariyadh') {
-                        sh '''
-                            $SONAR_SCANNER \
-                            -Dsonar.projectKey="$SONAR_PROJECT_KEY" \
-                            -Dsonar.projectName="$SONAR_PROJECT_NAME" \
-                            -Dsonar.sources=src \
-                            -Dsonar.host.url=http://172.29.123.173:9000
-                        '''
-                    }
+                withSonarQubeEnv('sonariyadh') {
+                    sh """
+                    mvn sonar:sonar \
+                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                    -Dsonar.projectName='${SONAR_PROJECT_NAME}' \
+                    -Dsonar.host.url=http://localhost:9000
+                    """
+                }
                 }
             }
         }
