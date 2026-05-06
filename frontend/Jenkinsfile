@@ -42,13 +42,15 @@ pipeline {
             steps {
                 withSonarQubeEnv('sonar') {
                     dir('frontend') {
-                        sh """
+                        sh '''
+                            export PATH=$PATH:/opt/sonar-scanner/bin
+
                             sonar-scanner \
-                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.projectName=${SONAR_PROJECT_NAME} \
-                            -Dsonar.sources=src \
-                            -Dsonar.host.url=http://localhost:9000
-                        """
+                              -Dsonar.projectKey=frontend \
+                              -Dsonar.projectName=Frontend \
+                              -Dsonar.sources=src \
+                              -Dsonar.host.url=http://localhost:9000
+                        '''
                     }
                 }
             }
@@ -58,7 +60,6 @@ pipeline {
     post {
         success {
             script {
-                // déclenche CD uniquement si le job existe
                 try {
                     build job: 'frontend-cd', wait: false, propagate: false
                 } catch (err) {
