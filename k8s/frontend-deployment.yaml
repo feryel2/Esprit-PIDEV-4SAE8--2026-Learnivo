@@ -17,8 +17,8 @@ spec:
     spec:
       containers:
         - name: imed-frontend
-          # TODO: Replace with your real Docker Hub image, e.g. akrimiprojects/imed-frontend:latest
-          image: your-dockerhub-username/imed-frontend:latest
+          # Docker Hub image — imedakrimi/imed-frontend:latest
+          image: imedakrimi/imed-frontend:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 80
