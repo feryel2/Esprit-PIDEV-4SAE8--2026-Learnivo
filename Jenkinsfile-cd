@@ -5,12 +5,26 @@ pipeline {
         IMAGE_NAME = 'bessem785/learnivo'
         DOCKER_CREDS_ID = 'iyadhdocker'
         KUBECONFIG = "/var/lib/jenkins/.kube/config"
+
+        JAVA_HOME = '/usr/lib/jvm/java-21-openjdk-amd64'
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
     }
 
     stages {
         stage('Checkout') {
             steps {
                 checkout scm
+            }
+        }
+
+        stage('Check Java Version') {
+            steps {
+                sh '''
+                    echo "JAVA_HOME=$JAVA_HOME"
+                    java -version
+                    javac -version
+                    mvn -version
+                '''
             }
         }
 
