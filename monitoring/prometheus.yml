@@ -1,0 +1,72 @@
+# =============================================================================
+# Prometheus Configuration — Learnivo DevOps Project
+# =============================================================================
+# IMPORTANT: Adapt hostnames and ports depending on your environment:
+#   - Local Docker Compose : use service names (e.g. imed-backend, api-gateway)
+#   - Kubernetes (kubeadm) : use ClusterIP service names or NodePort IPs
+# =============================================================================
+
+global:
+  scrape_interval: 15s        # Frequency of metrics collection
+  evaluation_interval: 15s    # Frequency of rule evaluation
+  scrape_timeout: 10s
+
+# ─── Alerting (optional, configure Alertmanager later) ───────────────────────
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# =============================================================================
+# Scrape Jobs
+# =============================================================================
+scrape_configs:
+
+  # ── 1. Prometheus itself ────────────────────────────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ── 2. Spring Boot Backend — Stage & Certification modules ─────────────────
+  # IMPORTANT: Spring Boot Actuator must be enabled and the endpoint
+  #   /actuator/prometheus must be exposed in application.properties:
+  #
+  #   management.endpoints.web.exposure.include=health,info,prometheus
+  #   management.endpoint.prometheus.enabled=true
+  #
+  # Adapt the hostname:
+  #   - Docker Compose : imed-backend:8080
+  #   - Kubernetes     : imed-backend-service:8088
+  #   - Local machine  : host.docker.internal:8080 (Windows/Mac)
+  - job_name: 'imed-backend'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8080']
+        labels:
+          application: 'imed-backend'
+          modules: 'stage,certification'
+
+  # ── 3. API Gateway ──────────────────────────────────────────────────────────
+  # IMPORTANT: Same requirement — Spring Boot Actuator must be enabled.
+  # Adapt the hostname and port to your environment.
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['host.docker.internal:8090']
+        labels:
+          application: 'api-gateway'
+
+  # ── 4. Eureka Server (optional) ─────────────────────────────────────────────
+  # IMPORTANT: Actuator required on Eureka server as well.
+  # - job_name: 'eureka-server'
+  #   metrics_path: '/actuator/prometheus'
+  #   static_configs:
+  #     - targets: ['host.docker.internal:8761']
+
+  # ── 5. SonarQube (optional — runs locally on port 9000) ─────────────────────
+  # IMPORTANT: SonarQube exposes its own metrics, not via Prometheus by default.
+  #   A SonarQube exporter (sonarqube-exporter) is needed for Prometheus scraping.
+  #   Uncomment and adapt if you add the exporter.
+  # - job_name: 'sonarqube'
+  #   static_configs:
+  #     - targets: ['host.docker.internal:9000']

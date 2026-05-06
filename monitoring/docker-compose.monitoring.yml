@@ -1,0 +1,74 @@
+# =============================================================================
+# Docker Compose — Monitoring Stack (Prometheus + Grafana)
+# Learnivo DevOps Project — Modules Stage & Certification
+# =============================================================================
+# Usage:
+#   docker compose -f monitoring/docker-compose.monitoring.yml up -d
+#
+# Stop:
+#   docker compose -f monitoring/docker-compose.monitoring.yml down
+#
+# IMPORTANT: This file starts ONLY Prometheus and Grafana.
+#   Your application services (imed-backend, frontend) must be running
+#   separately (either locally or via Docker).
+#   Adapt the prometheus.yml scrape targets accordingly.
+# =============================================================================
+
+version: '3.8'
+
+services:
+
+  # ── Prometheus ──────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"          # Access Prometheus UI at http://localhost:9090
+    volumes:
+      # Mount the prometheus.yml config from the same monitoring/ folder
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Persist Prometheus data across restarts
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    networks:
+      - monitoring
+
+  # ── Grafana ─────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"          # Access Grafana UI at http://localhost:3000
+    environment:
+      # Default admin credentials — change in production
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      # Persist Grafana dashboards and settings across restarts
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
+# =============================================================================
+# Named Volumes — persists data when containers are stopped
+# =============================================================================
+volumes:
+  prometheus_data:
+  grafana_data:
+
+# =============================================================================
+# Network — isolated monitoring network
+# =============================================================================
+networks:
+  monitoring:
+    driver: bridge
