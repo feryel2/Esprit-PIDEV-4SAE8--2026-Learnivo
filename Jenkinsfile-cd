@@ -17,12 +17,22 @@ pipeline {
             }
         }
 
-        stage('Check Java Version') {
+        stage('Check Java') {
             steps {
                 sh '''
                     echo "JAVA_HOME=$JAVA_HOME"
+
+                    echo "Java path:"
+                    which java
+                    readlink -f $(which java)
                     java -version
+
+                    echo "Javac path:"
+                    which javac
+                    readlink -f $(which javac)
                     javac -version
+
+                    echo "Maven version:"
                     mvn -version
                 '''
             }
@@ -30,7 +40,14 @@ pipeline {
 
         stage('Build Maven') {
             steps {
-                sh 'mvn clean package -DskipTests'
+                sh '''
+                    export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+                    export PATH=$JAVA_HOME/bin:$PATH
+
+                    mvn clean package -DskipTests \
+                      -Dmaven.compiler.fork=true \
+                      -Dmaven.compiler.executable=$JAVA_HOME/bin/javac
+                '''
             }
         }
 
