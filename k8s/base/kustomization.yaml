@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - 00-namespace.yaml
+  - 01-configmap.yaml
+  - 02-secrets.yaml
+  - 03-network-policies.yaml
+  - 04-ingress.yaml
+  - backend/01-discovery-server.yaml
+  - backend/02-api-gateway.yaml
+  - backend/03-user-service.yaml
+  - backend/04-course-service.yaml
+  - backend/05-quiz-service.yaml
+  - frontend/01-frontend.yaml

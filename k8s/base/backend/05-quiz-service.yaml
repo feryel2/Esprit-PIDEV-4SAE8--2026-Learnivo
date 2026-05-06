@@ -1,0 +1,104 @@
+---
+# Service for Quiz Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: quiz-service
+  namespace: learnivo
+  labels:
+    app: quiz-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8082
+      targetPort: 8082
+      protocol: TCP
+      name: http
+  selector:
+    app: quiz-service
+
+---
+# Deployment for Quiz Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quiz-service
+  namespace: learnivo
+  labels:
+    app: quiz-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: quiz-service
+  template:
+    metadata:
+      labels:
+        app: quiz-service
+    spec:
+      containers:
+      - name: quiz-service
+        image: learnivo/quiz-service:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8082
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: JAVA_OPTS
+          value: "-Xmx512m -Xms256m"
+        - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+          value: "http://discovery-server:8761/eureka/"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: learnivo-secrets
+              key: JWT_SECRET
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:h2:file:/data/h2/quiz-service;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: learnivo-secrets
+              key: SPRING_DATASOURCE_USERNAME
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: learnivo-secrets
+              key: SPRING_DATASOURCE_PASSWORD
+        volumeMounts:
+        - name: config
+          mountPath: /workspace/config
+          readOnly: true
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8082
+          initialDelaySeconds: 40
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8082
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: quiz-service-config
+      - name: data
+        emptyDir: {}

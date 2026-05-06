@@ -1,0 +1,77 @@
+Vagrant.configure("2") do |config|
+  config.vm.box = "bento/ubuntu-22.04"
+  # First boot after installing VirtualBox can be slow on Windows hosts.
+  config.vm.boot_timeout = 1200
+
+  # Shared folder to access repo from VMs at /vagrant
+  config.vm.synced_folder "../..", "/vagrant"
+
+  # Avoid interactive apt dialogs
+  config.vm.provision "shell", inline: "export DEBIAN_FRONTEND=noninteractive"
+
+  # ============================================================================
+  # CLUSTER CONFIGURATION
+  # ============================================================================
+  # Set ENABLE_WORKERS to true for a distributed cluster with worker nodes
+  # Set to false for a single-node control-plane setup (minimal resources)
+  # 
+  # Single-node (default): ~2GB RAM, ~2 CPU
+  # Multi-node: ~16GB RAM, ~8 CPU (1 CP + 3 Workers)
+  # ============================================================================
+  
+  ENABLE_WORKERS = false  # Change to true for multi-node cluster
+
+  # Optimized for kubeadm control-plane
+  # 8 GB RAM + 4 CPUs for control-plane
+  # 4 GB RAM + 2 CPUs per worker node
+  nodes = [
+    { name: "learnivo-cp", ip: "192.168.56.10", cpu: 4, mem: 8192, role: "control-plane" }
+  ]
+
+  # Add worker nodes if enabled
+  if ENABLE_WORKERS
+    nodes += [
+      { name: "learnivo-w1", ip: "192.168.56.11", cpu: 2, mem: 4096, role: "worker" },
+      { name: "learnivo-w2", ip: "192.168.56.12", cpu: 2, mem: 4096, role: "worker" },
+      { name: "learnivo-w3", ip: "192.168.56.13", cpu: 2, mem: 4096, role: "worker" }
+    ]
+  end
+
+  nodes.each do |n|
+    config.vm.define n[:name] do |node|
+      node.vm.hostname = n[:name]
+      node.vm.network "private_network", ip: n[:ip]
+
+      node.vm.provider "virtualbox" do |vb|
+        vb.name = n[:name]
+        vb.cpus = n[:cpu]
+        vb.memory = n[:mem]
+        # Performance optimizations
+        vb.customize ["modifyvm", :id, "--nested-paging", "on"]
+        vb.customize ["modifyvm", :id, "--cpuid-portability-level", "0"]
+        vb.customize ["modifyvm", :id, "--pae", "on"]
+        # Improve network performance
+        vb.customize ["modifyvm", :id, "--nictype1", "virtio"]
+      end
+
+      # Common provisioning for all nodes
+      node.vm.provision "shell", path: "provision/common.sh", args: [n[:role]]
+
+      if n[:role] == "control-plane"
+        # Expose demo ports from the control-plane VM to the host.
+        # These are useful when you use kubectl port-forward inside the VM.
+        node.vm.network "forwarded_port", guest: 4200, host: 4200, auto_correct: true
+        node.vm.network "forwarded_port", guest: 8080, host: 8080, auto_correct: true
+        node.vm.network "forwarded_port", guest: 8761, host: 8761, auto_correct: true
+        node.vm.network "forwarded_port", guest: 6443, host: 6443, auto_correct: true
+
+        # Control-plane provisioning
+        node.vm.provision "shell", path: "provision/control-plane.sh"
+      else
+        # Worker node provisioning
+        node.vm.provision "shell", path: "provision/worker.sh"
+      end
+    end
+  end
+end
+

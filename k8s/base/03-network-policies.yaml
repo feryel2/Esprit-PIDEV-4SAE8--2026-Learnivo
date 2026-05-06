@@ -1,0 +1,120 @@
+---
+# Network Policy: Allow frontend to access API Gateway
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: frontend-to-gateway
+  namespace: learnivo
+spec:
+  podSelector:
+    matchLabels:
+      app: frontend
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: api-gateway
+    ports:
+    - protocol: TCP
+      port: 8080
+
+---
+# Network Policy: Allow API Gateway to access microservices
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gateway-to-services
+  namespace: learnivo
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: discovery-server
+    ports:
+    - protocol: TCP
+      port: 8761
+  - to:
+    - podSelector:
+        matchLabels:
+          app: user-service
+    ports:
+    - protocol: TCP
+      port: 8083
+  - to:
+    - podSelector:
+        matchLabels:
+          app: course-service
+    ports:
+    - protocol: TCP
+      port: 8081
+  - to:
+    - podSelector:
+        matchLabels:
+          app: quiz-service
+    ports:
+    - protocol: TCP
+      port: 8082
+
+---
+# Network Policy: Allow microservices to access Eureka
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: services-to-eureka
+  namespace: learnivo
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - user-service
+      - course-service
+      - quiz-service
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: discovery-server
+    ports:
+    - protocol: TCP
+      port: 8761
+
+---
+# Network Policy: Allow inter-service communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: inter-service-communication
+  namespace: learnivo
+spec:
+  podSelector:
+    matchExpressions:
+    - key: app
+      operator: In
+      values:
+      - user-service
+      - course-service
+      - quiz-service
+  policyTypes:
+  - Egress
+  egress:
+  - to:
+    - podSelector: {}
+    ports:
+    - protocol: TCP
+      port: 8081
+    - protocol: TCP
+      port: 8082
+    - protocol: TCP
+      port: 8083

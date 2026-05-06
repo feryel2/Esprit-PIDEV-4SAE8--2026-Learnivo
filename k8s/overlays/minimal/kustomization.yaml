@@ -1,0 +1,31 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: learnivo-minimal
+
+namespace: learnivo
+
+commonLabels:
+  app.kubernetes.io/name: learnivo
+  app.kubernetes.io/version: "1.0.0"
+
+resources:
+  - ../00-namespace.yaml
+  - ../01-configmap.yaml
+  - ../02-secrets.yaml
+  - ../backend/01-discovery-server.yaml
+  - ../backend/02-api-gateway.yaml
+  - ../backend/04-course-service.yaml
+  - ../backend/05-quiz-service.yaml
+  - ../frontend/01-frontend.yaml
+
+replicas:
+  - name: api-gateway
+    count: 2
+  - name: course-service
+    count: 2
+  - name: quiz-service
+    count: 2
+  - name: frontend
+    count: 2

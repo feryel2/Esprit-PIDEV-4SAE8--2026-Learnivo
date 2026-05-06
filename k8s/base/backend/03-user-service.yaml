@@ -1,0 +1,104 @@
+---
+# Service for User Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: user-service
+  namespace: learnivo
+  labels:
+    app: user-service
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8083
+      targetPort: 8083
+      protocol: TCP
+      name: http
+  selector:
+    app: user-service
+
+---
+# Deployment for User Service
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: user-service
+  namespace: learnivo
+  labels:
+    app: user-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: user-service
+  template:
+    metadata:
+      labels:
+        app: user-service
+    spec:
+      containers:
+      - name: user-service
+        image: learnivo/user-service:latest
+        imagePullPolicy: Always
+        ports:
+        - name: http
+          containerPort: 8083
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: JAVA_OPTS
+          value: "-Xmx512m -Xms256m"
+        - name: EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE
+          value: "http://discovery-server:8761/eureka/"
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: learnivo-secrets
+              key: JWT_SECRET
+        - name: SPRING_DATASOURCE_URL
+          value: "jdbc:h2:file:/data/h2/user-service;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE"
+        - name: SPRING_DATASOURCE_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: learnivo-secrets
+              key: SPRING_DATASOURCE_USERNAME
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: learnivo-secrets
+              key: SPRING_DATASOURCE_PASSWORD
+        volumeMounts:
+        - name: config
+          mountPath: /workspace/config
+          readOnly: true
+        - name: data
+          mountPath: /data
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8083
+          initialDelaySeconds: 40
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8083
+          initialDelaySeconds: 30
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
+      volumes:
+      - name: config
+        configMap:
+          name: user-service-config
+      - name: data
+        emptyDir: {}

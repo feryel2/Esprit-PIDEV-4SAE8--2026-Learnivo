@@ -180,10 +180,10 @@ npm run build
 - frontend service tests for authentication, recommendations, and learning progress
 - dedicated microservices for modularity and maintainability
 
-## Contributors
+## Repository Maintainer
 
 - Feryel Mansouri
-- Hazem Ankoud
-- Iyadh Cherni
-- Mohamed Smida
-- Imed Akrimi
+
+## Note
+
+This repository snapshot and the Kubernetes demonstration material are currently maintained as an individual working copy.

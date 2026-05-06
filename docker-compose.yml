@@ -1,0 +1,162 @@
+
+
+services:
+  # Service Discovery
+  discovery-server:
+    build:
+      context: .
+      dockerfile: backend/discovery-server/Dockerfile
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    environment:
+      - JAVA_OPTS=-Xmx256m -Xms256m
+    networks:
+      - learnivo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # User Service
+  user-service:
+    build:
+      context: .
+      dockerfile: backend/user-service/Dockerfile
+    container_name: user-service
+    ports:
+      - "8083:8083"
+    environment:
+      - JAVA_OPTS=-Xmx256m -Xms256m
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_APPLICATION_NAME=user-service
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Course Service
+  course-service:
+    build:
+      context: .
+      dockerfile: backend/course-service/Dockerfile
+    container_name: course-service
+    ports:
+      - "8081:8081"
+    environment:
+      - JAVA_OPTS=-Xmx256m -Xms256m
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_APPLICATION_NAME=course-service
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Quiz Service
+  quiz-service:
+    build:
+      context: .
+      dockerfile: backend/quiz-service/Dockerfile
+    container_name: quiz-service
+    ports:
+      - "8082:8082"
+    environment:
+      - JAVA_OPTS=-Xmx256m -Xms256m
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_APPLICATION_NAME=quiz-service
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: backend/api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - JAVA_OPTS=-Xmx256m -Xms256m
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-server:8761/eureka/
+      - SPRING_APPLICATION_NAME=api-gateway
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+      user-service:
+        condition: service_healthy
+      course-service:
+        condition: service_healthy
+      quiz-service:
+        condition: service_healthy
+    networks:
+      - learnivo-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Frontend (Angular)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "80:80"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      - api-gateway
+    networks:
+      - learnivo-network
+    restart: unless-stopped
+
+  # SonarQube
+  sonarqube:
+    image: sonarqube:9.9-community
+    container_name: sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - learnivo-network
+
+networks:
+  learnivo-network:
+    driver: bridge
+
+volumes:
+  sonarqube_data:
+  sonarqube_extensions:
+  sonarqube_logs:

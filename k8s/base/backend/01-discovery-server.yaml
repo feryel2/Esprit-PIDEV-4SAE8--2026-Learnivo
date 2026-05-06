@@ -1,0 +1,73 @@
+---
+# Service for Discovery Server (Eureka)
+apiVersion: v1
+kind: Service
+metadata:
+  name: discovery-server
+  namespace: learnivo
+  labels:
+    app: discovery-server
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8761
+      targetPort: 8761
+      protocol: TCP
+      name: eureka
+  selector:
+    app: discovery-server
+
+---
+# Deployment for Discovery Server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discovery-server
+  namespace: learnivo
+  labels:
+    app: discovery-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: discovery-server
+  template:
+    metadata:
+      labels:
+        app: discovery-server
+    spec:
+      containers:
+      - name: discovery-server
+        image: learnivo/discovery-server:latest
+        imagePullPolicy: Always
+        ports:
+        - name: eureka
+          containerPort: 8761
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: "kubernetes"
+        - name: JAVA_OPTS
+          value: "-Xmx256m -Xms256m"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8761
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8761
+          initialDelaySeconds: 20
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 3
