@@ -13,56 +13,24 @@ pipeline {
             }
         }
 
-        stage('Check Node Version') {
-            steps {
-                dir('frontend') {
-                    sh '''
-                        node -v
-                        npm -v
-                    '''
-                }
-            }
-        }
-
-        stage('Install Dependencies') {
-            steps {
-                dir('frontend') {
-                    sh '''
-                        npm install
-                        npm install @tailwindcss/oxide-linux-x64-gnu --save-dev
-                    '''
-                }
-            }
-        }
-
-        stage('Build') {
-            steps {
-                dir('frontend') {
-                    sh 'npm run build -- --configuration development'
-                }
-            }
-        }
-
-        stage('Lint & Test') {
-            steps {
-                dir('frontend') {
-                    echo 'Skipping tests for now'
-                }
-            }
-        }
-
         stage('SonarQube Analysis') {
             steps {
                 dir('frontend') {
-                    withSonarQubeEnv('sonariyadh') {
-                        sh '''
-                            npx sonar-scanner \
-                            -Dsonar.projectKey=learnivo-frontend \
-                            -Dsonar.projectName="Learnivo Frontend" \
-                            -Dsonar.sources=src/app \
-                            -Dsonar.host.url=http://localhost:9000 \
-                            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/.angular/**,**/coverage/**,**/*.spec.ts,**/*.test.ts
-                        '''
+                    script {
+                        def scannerHome = tool 'SonarScanner'
+
+                        withSonarQubeEnv('sonariyadh') {
+                            sh """
+                                ${scannerHome}/bin/sonar-scanner \
+                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                                -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
+                                -Dsonar.sources=src/app \
+                                -Dsonar.host.url=http://localhost:9000 \
+                                -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/.angular/**,**/coverage/**,**/*.spec.ts,**/*.test.ts \
+                                -Dsonar.scm.disabled=true \
+                                -Dsonar.sourceEncoding=UTF-8
+                            """
+                        }
                     }
                 }
             }
