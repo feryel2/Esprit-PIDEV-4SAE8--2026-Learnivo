@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: learnivo-frontend-deployment
+  labels:
+    app: learnivo-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: learnivo-frontend
+  template:
+    metadata:
+      labels:
+        app: learnivo-frontend
+    spec:
+      containers:
+      - name: learnivo-frontend
+        image: bessem785/learnivo-frontend:latest
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: learnivo-frontend-service
+spec:
+  selector:
+    app: learnivo-frontend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: LoadBalancer

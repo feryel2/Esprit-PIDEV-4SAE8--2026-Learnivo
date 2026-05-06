@@ -1,0 +1,59 @@
+pipeline {
+    agent any
+
+    tools {
+        nodejs 'NodeJS'
+    }
+
+    environment {
+        SONAR_PROJECT_KEY = 'learnivo-frontend'
+        SONAR_PROJECT_NAME = 'Learnivo Frontend'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('frontend') {
+                    sh 'npm install'
+                }
+            }
+        }
+
+        stage('Lint & Test') {
+            steps {
+                dir('frontend') {
+                    // sh 'npm run test -- --watch=false --browsers=ChromeHeadless' 
+                    echo 'Skipping tests for now or run npm run test'
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonariyadh') {
+                    dir('frontend') {
+                        sh """
+                        sonar-scanner \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                        -Dsonar.projectName='${SONAR_PROJECT_NAME}' \
+                        -Dsonar.sources=src \
+                        -Dsonar.host.url=http://localhost:9000
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            build job: 'iyadh-frontend-cd', wait: false
+        }
+    }
+}

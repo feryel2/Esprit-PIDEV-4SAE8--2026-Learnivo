@@ -1,13 +1,14 @@
 pipeline {
     agent any
 
+    tools {
+        nodejs 'NodeJS'
+    }
+
     environment {
-        IMAGE_NAME = 'bessem785/learnivo'
+        IMAGE_NAME = 'bessem785/learnivo-frontend'
         DOCKER_CREDS_ID = 'iyadhdocker'
         KUBECONFIG = "/var/lib/jenkins/.kube/config"
-
-        JAVA_HOME = '/usr/lib/jvm/java-21-openjdk-amd64'
-        PATH = "${JAVA_HOME}/bin:${env.PATH}"
     }
 
     stages {
@@ -17,33 +18,16 @@ pipeline {
             }
         }
 
-        stage('Check Java') {
+        stage('Build Frontend') {
             steps {
-                sh '''
-                    echo "JAVA_HOME=$JAVA_HOME"
-
-                    which java
-                    readlink -f $(which java)
-                    java -version
-
-                    which javac
-                    readlink -f $(which javac)
-                    javac -version
-
-                    mvn -version
-                '''
+                dir('frontend') {
+                    sh 'npm install'
+                    sh 'npm run build'
+                }
             }
         }
 
-        stage('Build Maven') {
-            steps {
-                sh '''
-                    mvn clean package -DskipTests
-                '''
-            }
-        }
-
-        stage('Docker Login & Push') {
+        stage('Docker Build & Push') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: "${DOCKER_CREDS_ID}",
@@ -52,7 +36,7 @@ pipeline {
                 )]) {
                     sh '''
                         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                        docker build --no-cache -t $IMAGE_NAME:latest .
+                        docker build -t $IMAGE_NAME:latest frontend/
                         docker push $IMAGE_NAME:latest
                     '''
                 }
@@ -62,7 +46,7 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                    kubectl apply -f k8s/deployment.yaml
+                    kubectl apply -f frontend/k8s/deployment.yaml
                 '''
             }
         }
@@ -70,10 +54,10 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment Pipeline SUCCESS 🚀'
+            echo 'Frontend Deployment SUCCESS 🚀'
         }
         failure {
-            echo 'Deployment Pipeline FAILED ❌'
+            echo 'Frontend Deployment FAILED ❌'
         }
         always {
             sh 'docker logout || true'
