@@ -28,6 +28,10 @@ def runFrontendCommandInContainer(String command, List<String> copyBackPaths = [
 pipeline {
     agent any
 
+    tools {
+        sonar 'SonarScanner'
+    }
+
     options {
         disableConcurrentBuilds()
         timestamps()
@@ -67,6 +71,20 @@ pipeline {
                 script {
                     runFrontendCommandInContainer('npm run build', ['dist'])
                 }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh 'sonar-scanner'
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                waitForQualityGate abortPipeline: true
             }
         }
 

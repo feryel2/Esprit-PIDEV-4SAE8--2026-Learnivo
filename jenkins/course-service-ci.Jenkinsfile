@@ -35,6 +35,20 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh "mvn -f ${env.POM_PATH} -pl ${env.SERVICE_NAME} -am sonar:sonar"
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                waitForQualityGate abortPipeline: true
+            }
+        }
+
         stage('Archive Test Reports') {
             steps {
                 junit allowEmptyResults: false, testResults: 'backend/course-service/target/surefire-reports/*.xml'
