@@ -29,9 +29,9 @@ pipeline {
                 dir('frontend') {
                     sh '''
                         rm -rf node_modules
-                        rm -f package-lock.json
                         npm cache clean --force
                         npm install
+                        npm install @tailwindcss/oxide-linux-x64-gnu --save-dev
                     '''
                 }
             }
