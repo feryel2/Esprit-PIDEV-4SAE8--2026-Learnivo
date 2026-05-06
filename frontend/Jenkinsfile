@@ -33,7 +33,7 @@ pipeline {
         stage('Test') {
             steps {
                 dir('frontend') {
-                    sh 'npm run test -- --watch=false || true'
+                    sh 'npm run test -- --watch=false'
                 }
             }
         }
@@ -43,11 +43,11 @@ pipeline {
                 withSonarQubeEnv('sonar') {
                     dir('frontend') {
                         sh """
-                        sonar-scanner \\
-                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \\
-                        -Dsonar.projectName='${SONAR_PROJECT_NAME}' \\
-                        -Dsonar.sources=src \\
-                        -Dsonar.host.url=http://localhost:9000 || echo "Sonar Scanner not installed or failed, continuing..."
+                            sonar-scanner \
+                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                            -Dsonar.projectName=${SONAR_PROJECT_NAME} \
+                            -Dsonar.sources=src \
+                            -Dsonar.host.url=http://localhost:9000
                         """
                     }
                 }
@@ -57,7 +57,18 @@ pipeline {
 
     post {
         success {
-            build job: 'frontend-cd', wait: false
+            script {
+                // déclenche CD uniquement si le job existe
+                try {
+                    build job: 'frontend-cd', wait: false, propagate: false
+                } catch (err) {
+                    echo "frontend-cd job not found, skipping CD step"
+                }
+            }
+        }
+
+        failure {
+            echo 'Pipeline failed ❌'
         }
     }
 }
