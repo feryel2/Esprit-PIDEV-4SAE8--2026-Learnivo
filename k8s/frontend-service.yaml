@@ -1,0 +1,16 @@
+# Kubernetes NodePort Service for the Angular Frontend
+apiVersion: v1
+kind: Service
+metadata:
+  name: imed-frontend-service
+  labels:
+    app: imed-frontend
+spec:
+  type: NodePort
+  selector:
+    app: imed-frontend
+  ports:
+    - protocol: TCP
+      port: 4200
+      targetPort: 80
+      nodePort: 30420

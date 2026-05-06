@@ -1,0 +1,16 @@
+# Kubernetes NodePort Service for the Spring Boot Backend
+apiVersion: v1
+kind: Service
+metadata:
+  name: imed-backend-service
+  labels:
+    app: imed-backend
+spec:
+  type: NodePort
+  selector:
+    app: imed-backend
+  ports:
+    - protocol: TCP
+      port: 8088
+      targetPort: 8080
+      nodePort: 30088

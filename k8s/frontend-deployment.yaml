@@ -1,0 +1,24 @@
+# Kubernetes Deployment for the Angular Frontend
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imed-frontend
+  labels:
+    app: imed-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: imed-frontend
+  template:
+    metadata:
+      labels:
+        app: imed-frontend
+    spec:
+      containers:
+        - name: imed-frontend
+          # TODO: Replace with your real Docker Hub image, e.g. akrimiprojects/imed-frontend:latest
+          image: your-dockerhub-username/imed-frontend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
