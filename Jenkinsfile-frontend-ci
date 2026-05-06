@@ -48,7 +48,7 @@ pipeline {
                             -Dsonar.projectKey=learnivo-frontend \
                             -Dsonar.projectName="Learnivo Frontend" \
                             -Dsonar.sources=src \
-                            -Dsonar.host.url=http://http://172.29.123.173:9000
+                            -Dsonar.host.url=http://172.29.123.173:9000
                         '''
                     }
                 }
