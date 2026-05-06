@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+
+    tools {
+        maven 'Maven 3.x'
+        jdk 'JDK 17'
+    }
+
+    environment {
+        SONAR_PROJECT_KEY = 'learnivo'
+        SONAR_PROJECT_NAME = 'Learnivo'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build & Test') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('sonariyadh') {
+                    sh """
+                    mvn sonar:sonar \
+                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                    -Dsonar.projectName='${SONAR_PROJECT_NAME}' \
+                    -Dsonar.host.url=http://localhost:9000
+                    """
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            junit 'target/surefire-reports/*.xml'
+        }
+        success {
+            build job: 'learnivo-cd', wait: false
+        }
+    }
+}
