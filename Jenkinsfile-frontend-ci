@@ -40,7 +40,7 @@ pipeline {
         stage('Build') {
             steps {
                 dir('frontend') {
-                    sh 'npm run build'
+                    sh 'npm run build -- --configuration development'
                 }
             }
         }
@@ -49,6 +49,7 @@ pipeline {
             steps {
                 dir('frontend') {
                     echo 'Skipping tests for now'
+                    // sh 'npm run test -- --watch=false --browsers=ChromeHeadless'
                 }
             }
         }
@@ -57,14 +58,14 @@ pipeline {
             steps {
                 dir('frontend') {
                     withSonarQubeEnv('sonariyadh') {
-                        sh """
+                        sh '''
                             sonar-scanner \
-                            -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                            -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
+                            -Dsonar.projectKey=learnivo-frontend \
+                            -Dsonar.projectName="Learnivo Frontend" \
                             -Dsonar.sources=src \
                             -Dsonar.host.url=http://172.29.123.173:9000 \
                             -Dsonar.exclusions=**/*.java,**/node_modules/**,**/dist/**,**/build/**
-                        """
+                        '''
                     }
                 }
             }
