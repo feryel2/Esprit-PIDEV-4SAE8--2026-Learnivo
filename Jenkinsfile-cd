@@ -2,9 +2,12 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = 'bessem785/learnivo-frontend'
+        IMAGE_NAME = 'bessem785/learnivo'
         DOCKER_CREDS_ID = 'iyadhdocker'
         KUBECONFIG = "/var/lib/jenkins/.kube/config"
+
+        JAVA_HOME = '/usr/lib/jvm/java-21-openjdk-amd64'
+        PATH = "${JAVA_HOME}/bin:${env.PATH}"
     }
 
     stages {
@@ -14,7 +17,33 @@ pipeline {
             }
         }
 
-        stage('Docker Build & Push') {
+        stage('Check Java') {
+            steps {
+                sh '''
+                    echo "JAVA_HOME=$JAVA_HOME"
+
+                    which java
+                    readlink -f $(which java)
+                    java -version
+
+                    which javac
+                    readlink -f $(which javac)
+                    javac -version
+
+                    mvn -version
+                '''
+            }
+        }
+
+        stage('Build Maven') {
+            steps {
+                sh '''
+                    mvn clean package -DskipTests
+                '''
+            }
+        }
+
+        stage('Docker Login & Push') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: "${DOCKER_CREDS_ID}",
@@ -23,9 +52,7 @@ pipeline {
                 )]) {
                     sh '''
                         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-
-                        docker build -t $IMAGE_NAME:latest ./frontend
-
+                        docker build --no-cache -t $IMAGE_NAME:latest .
                         docker push $IMAGE_NAME:latest
                     '''
                 }
@@ -35,7 +62,7 @@ pipeline {
         stage('Deploy to Kubernetes') {
             steps {
                 sh '''
-                    kubectl apply -f frontend/k8s/deployment.yaml
+                    kubectl apply -f k8s/deployment.yaml
                 '''
             }
         }
@@ -43,13 +70,11 @@ pipeline {
 
     post {
         success {
-            echo 'Frontend Deployment SUCCESS 🚀'
+            echo 'Deployment Pipeline SUCCESS 🚀'
         }
-
         failure {
-            echo 'Frontend Deployment FAILED ❌'
+            echo 'Deployment Pipeline FAILED ❌'
         }
-
         always {
             sh 'docker logout || true'
         }
