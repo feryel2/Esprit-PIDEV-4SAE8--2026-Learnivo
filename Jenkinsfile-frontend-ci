@@ -16,21 +16,17 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 dir('frontend') {
-                    script {
-                        def scannerHome = tool 'SonarScanner'
-
-                        withSonarQubeEnv('sonariyadh') {
-                            sh """
-                                ${scannerHome}/bin/sonar-scanner \
-                                -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                                -Dsonar.projectName="${SONAR_PROJECT_NAME}" \
-                                -Dsonar.sources=src/app \
-                                -Dsonar.host.url=http://localhost:9000 \
-                                -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/.angular/**,**/coverage/**,**/*.spec.ts,**/*.test.ts \
-                                -Dsonar.scm.disabled=true \
-                                -Dsonar.sourceEncoding=UTF-8
-                            """
-                        }
+                    withSonarQubeEnv('sonariyadh') {
+                        sh '''
+                            npx sonar-scanner \
+                            -Dsonar.projectKey=learnivo-frontend \
+                            -Dsonar.projectName="Learnivo Frontend" \
+                            -Dsonar.sources=src/app \
+                            -Dsonar.host.url=http://localhost:9000 \
+                            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**,**/.angular/**,**/coverage/**,**/*.spec.ts,**/*.test.ts \
+                            -Dsonar.scm.disabled=true \
+                            -Dsonar.sourceEncoding=UTF-8
+                        '''
                     }
                 }
             }
