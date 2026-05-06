@@ -16,10 +16,12 @@ pipeline {
 
         stage('Check Node Version') {
             steps {
-                sh '''
-                    node -v
-                    npm -v
-                '''
+                dir('frontend') {
+                    sh '''
+                        node -v
+                        npm -v
+                    '''
+                }
             }
         }
 
@@ -42,13 +44,17 @@ pipeline {
 
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('sonariyadh') {
-                    sh """
-                        mvn sonar:sonar \
-                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                        -Dsonar.projectName='${SONAR_PROJECT_NAME}' \
-                        -Dsonar.host.url=http://localhost:9000
-                    """
+                dir('frontend') {
+                    withSonarQubeEnv('sonariyadh') {
+                        sh '''
+                            /opt/sonar-scanner/bin/sonar-scanner \
+                            -Dsonar.projectKey=learnivo-frontend \
+                            -Dsonar.projectName="Learnivo Frontend" \
+                            -Dsonar.sources=src \
+                            -Dsonar.host.url=http://172.29.123.173:9000 \
+                            -Dsonar.exclusions=**/*.java,**/node_modules/**,**/dist/**,**/build/**
+                        '''
+                    }
                 }
             }
         }
