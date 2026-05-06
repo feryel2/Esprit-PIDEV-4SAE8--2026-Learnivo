@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    tools {
-        
-    }
-
     environment {
         SONAR_PROJECT_KEY = 'learnivo-frontend'
         SONAR_PROJECT_NAME = 'Learnivo Frontend'
@@ -48,7 +44,6 @@ pipeline {
             steps {
                 dir('frontend') {
                     echo 'Skipping tests for now'
-                    // sh 'npm run test -- --watch=false --browsers=ChromeHeadless'
                 }
             }
         }
