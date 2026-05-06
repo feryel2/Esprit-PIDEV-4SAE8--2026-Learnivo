@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'hazemank/pi-frontend'
-        KUBECONFIG = "/var/lib/jenkins/.kube/config"
+        KUBECONFIG = '/var/lib/jenkins/.kube/config'
     }
 
     stages {
@@ -17,13 +17,15 @@ pipeline {
         stage('Build NPM') {
             steps {
                 dir('frontend') {
-                    sh 'npm install'
-                    sh 'npm run build'
+                    sh '''
+                        npm install
+                        npm run build
+                    '''
                 }
             }
         }
 
-        stage('Docker Login (before build)') {
+        stage('Docker Login') {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds',
@@ -31,7 +33,7 @@ pipeline {
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
                     sh '''
-                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
                     '''
                 }
             }
@@ -41,8 +43,7 @@ pipeline {
             steps {
                 dir('frontend') {
                     sh '''
-                        docker pull nginx:alpine || true
-                        docker build --no-cache -t $IMAGE_NAME:latest .
+                        docker build -t $IMAGE_NAME:latest .
                     '''
                 }
             }
@@ -56,11 +57,13 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy to Kubernetes (Minikube)') {
             steps {
                 dir('frontend') {
                     sh '''
                         kubectl apply -f k8s/deployment.yaml
+                        kubectl apply -f k8s/service.yaml || true
+                        kubectl rollout restart deployment frontend || true
                     '''
                 }
             }
@@ -71,9 +74,11 @@ pipeline {
         success {
             echo 'Pipeline SUCCESS 🚀'
         }
+
         failure {
             echo 'Pipeline FAILED ❌'
         }
+
         always {
             sh 'docker logout || true'
         }
