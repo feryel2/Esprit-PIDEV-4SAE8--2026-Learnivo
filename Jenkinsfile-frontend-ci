@@ -4,7 +4,6 @@ pipeline {
     environment {
         SONAR_PROJECT_KEY = 'learnivo-frontend'
         SONAR_PROJECT_NAME = 'Learnivo Frontend'
-        SONAR_SCANNER_HOME = "${WORKSPACE}/sonar-scanner"
     }
 
     stages {
@@ -16,32 +15,17 @@ pipeline {
 
         stage('Check Node Version') {
             steps {
-                dir('frontend') {
-                    sh '''
-                        node -v
-                        npm -v
-                    '''
-                }
+                sh '''
+                    node -v
+                    npm -v
+                '''
             }
         }
 
         stage('Install Dependencies') {
             steps {
                 dir('frontend') {
-                    sh '''
-                        rm -rf node_modules
-                        npm cache clean --force
-                        npm install
-                        npm install @tailwindcss/oxide-linux-x64-gnu --save-dev
-                    '''
-                }
-            }
-        }
-
-        stage('Build') {
-            steps {
-                dir('frontend') {
-                    sh 'npm run build -- --configuration development'
+                    sh 'npm install'
                 }
             }
         }
@@ -54,35 +38,16 @@ pipeline {
             }
         }
 
-        stage('Install SonarScanner') {
-            steps {
-                sh '''
-                    rm -rf sonar-scanner sonar-scanner.zip
-
-                    wget -O sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
-
-                    unzip sonar-scanner.zip
-
-                    mv sonar-scanner-5.0.1.3006-linux sonar-scanner
-
-                    chmod +x sonar-scanner/bin/sonar-scanner
-
-                    sonar-scanner/bin/sonar-scanner -v
-                '''
-            }
-        }
-
         stage('SonarQube Analysis') {
             steps {
                 dir('frontend') {
                     withSonarQubeEnv('sonariyadh') {
                         sh '''
-                            ../sonar-scanner/bin/sonar-scanner \
+                            npx sonar-scanner \
                             -Dsonar.projectKey=learnivo-frontend \
                             -Dsonar.projectName="Learnivo Frontend" \
                             -Dsonar.sources=src \
-                            -Dsonar.host.url=http://172.29.123.173:9000 \
-                            -Dsonar.exclusions=**/*.java,**/node_modules/**,**/dist/**,**/build/**
+                            -Dsonar.exclusions=**/node_modules/**,**/dist/**,**/build/**
                         '''
                     }
                 }
