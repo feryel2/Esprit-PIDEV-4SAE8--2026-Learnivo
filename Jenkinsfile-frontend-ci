@@ -4,6 +4,7 @@ pipeline {
     environment {
         SONAR_PROJECT_KEY = 'learnivo-frontend'
         SONAR_PROJECT_NAME = 'Learnivo Frontend'
+        SONAR_SCANNER = '/opt/sonar-scanner/bin/sonar-scanner'
     }
 
     stages {
@@ -44,9 +45,9 @@ pipeline {
                 dir('frontend') {
                     withSonarQubeEnv('sonariyadh') {
                         sh '''
-                            sonar-scanner \
-                            -Dsonar.projectKey=learnivo-frontend \
-                            -Dsonar.projectName="Learnivo Frontend" \
+                            $SONAR_SCANNER \
+                            -Dsonar.projectKey="$SONAR_PROJECT_KEY" \
+                            -Dsonar.projectName="$SONAR_PROJECT_NAME" \
                             -Dsonar.sources=src \
                             -Dsonar.host.url=http://172.29.123.173:9000
                         '''
