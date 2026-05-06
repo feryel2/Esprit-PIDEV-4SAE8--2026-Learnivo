@@ -44,12 +44,11 @@ pipeline {
             steps {
                 withSonarQubeEnv('sonariyadh') {
                     sh """
-                    mvn sonar:sonar \
-                    -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
-                    -Dsonar.projectName='${SONAR_PROJECT_NAME}' \
-                    -Dsonar.host.url=http://localhost:9000
+                        mvn sonar:sonar \
+                        -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                        -Dsonar.projectName='${SONAR_PROJECT_NAME}' \
+                        -Dsonar.host.url=http://localhost:9000
                     """
-                }
                 }
             }
         }
