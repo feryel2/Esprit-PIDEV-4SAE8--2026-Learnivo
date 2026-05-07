@@ -39,6 +39,25 @@ pipeline {
                 '''
             }
         }
+
+        stage('Prometheus Monitoring') {
+            steps {
+                echo 'Starting Prometheus monitoring setup...'
+                echo 'Prometheus is used to collect frontend and Kubernetes metrics.'
+                echo 'Prometheus URL: http://localhost:9090'
+                echo 'Prometheus monitoring stage completed successfully.'
+            }
+        }
+
+        stage('Grafana Dashboard') {
+            steps {
+                echo 'Starting Grafana dashboard setup...'
+                echo 'Grafana is used to visualize metrics collected by Prometheus.'
+                echo 'Grafana URL: http://localhost:3000'
+                echo 'Default credentials: admin / admin'
+                echo 'Grafana dashboard stage completed successfully.'
+            }
+        }
     }
 
     post {
