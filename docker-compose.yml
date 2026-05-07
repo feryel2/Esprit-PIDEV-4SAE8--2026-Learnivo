@@ -1,11 +1,9 @@
-
-
 services:
   # Service Discovery
   discovery-server:
     build:
-      context: .
-      dockerfile: backend/discovery-server/Dockerfile
+      context: ./backend
+      dockerfile: discovery-server/Dockerfile
     container_name: discovery-server
     ports:
       - "8761:8761"
@@ -22,8 +20,8 @@ services:
   # User Service
   user-service:
     build:
-      context: .
-      dockerfile: backend/user-service/Dockerfile
+      context: ./backend
+      dockerfile: user-service/Dockerfile
     container_name: user-service
     ports:
       - "8083:8083"
@@ -46,8 +44,8 @@ services:
   # Course Service
   course-service:
     build:
-      context: .
-      dockerfile: backend/course-service/Dockerfile
+      context: ./backend
+      dockerfile: course-service/Dockerfile
     container_name: course-service
     ports:
       - "8081:8081"
@@ -70,8 +68,8 @@ services:
   # Quiz Service
   quiz-service:
     build:
-      context: .
-      dockerfile: backend/quiz-service/Dockerfile
+      context: ./backend
+      dockerfile: quiz-service/Dockerfile
     container_name: quiz-service
     ports:
       - "8082:8082"
@@ -94,8 +92,8 @@ services:
   # API Gateway
   api-gateway:
     build:
-      context: .
-      dockerfile: backend/api-gateway/Dockerfile
+      context: ./backend
+      dockerfile: api-gateway/Dockerfile
     container_name: api-gateway
     ports:
       - "8080:8080"
@@ -160,3 +158,4 @@ volumes:
   sonarqube_data:
   sonarqube_extensions:
   sonarqube_logs:
+
