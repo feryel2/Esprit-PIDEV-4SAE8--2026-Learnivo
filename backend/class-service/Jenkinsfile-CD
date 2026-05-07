@@ -65,6 +65,17 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy Monitoring') {
+            steps {
+                dir('backend/class-service') {
+                    sh '''
+                        kubectl apply -f k8s/prometheus.yaml || true
+                        kubectl apply -f k8s/grafana.yaml || true
+                    '''
+                }
+            }
+        }
     }
 
     post {

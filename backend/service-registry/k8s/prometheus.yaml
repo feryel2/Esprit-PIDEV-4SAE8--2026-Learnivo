@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus-service-registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus-service-registry
+  template:
+    metadata:
+      labels:
+        app: prometheus-service-registry
+    spec:
+      containers:
+        - name: prometheus
+          image: prom/prometheus:latest
+          ports:
+            - containerPort: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus-service-registry
+spec:
+  selector:
+    app: prometheus-service-registry
+  ports:
+    - port: 9090
+      targetPort: 9090
+  type: ClusterIP
